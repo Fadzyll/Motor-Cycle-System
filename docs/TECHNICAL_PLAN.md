@@ -1,6 +1,11 @@
 # Motorcycle System — Technical Plan
 
-A web app for riders to track motorcycle maintenance (engine oil, coolant, tyres, chain, brakes, etc.) and to find motorcycle workshops near their current location. Deployed on Vercel.
+A rider app for tracking motorcycle maintenance (engine oil, coolant, tyres, chain, brakes, etc.) and for finding motorcycle workshops near the rider's current location.
+
+**One codebase, two targets:**
+
+- 🌐 **Web app** — deployed on **Vercel**
+- 🤖 **Android app** — the same web code wrapped with **Capacitor**, published on Google Play (iOS can be added later with the same code)
 
 ---
 
@@ -11,54 +16,102 @@ A web app for riders to track motorcycle maintenance (engine oil, coolant, tyres
 | 1 | Track maintenance per motorcycle | Log every service, see what is due next |
 | 2 | Know *when* something is due | By distance (km) **or** time, whichever comes first |
 | 3 | Find nearby workshops | Google Maps, only after the user allows location access |
-| 4 | Works well on a phone | Riders use it at the workshop or on the road |
-| 5 | Cheap to run | Fits in Vercel + Supabase free tiers + Google Maps free monthly usage |
+| 4 | Android app + website from one codebase | Capacitor wraps the web build |
+| 5 | Reminders that work even when the app is closed | Native local notifications on Android, email on web |
+| 6 | Cheap to run | Vercel + Supabase free tiers + Google Maps free monthly usage |
 
 ---
 
-## 2. Tech Stack
+## 2. Why the stack changes because of Capacitor
+
+Capacitor puts a **static web build** (HTML/JS/CSS) inside an Android WebView. The app's files live **on the phone**, not on Vercel. That has some effects:
+
+| Concern | What it means for us |
+|---------|----------------------|
+| No server inside the app | Server-side rendering, Next.js Server Actions and Server Components **can't run in the APK**. The frontend must be a client-side app (SPA). |
+| Different origin | Inside the app, the page origin is `https://localhost` (Android), not your Vercel domain. A relative `fetch('/api/...')` won't reach Vercel, so we need a full API base URL and CORS. |
+| Auth redirects | OAuth / magic-link emails must come back to the **app**, not the website, so we need deep links. |
+| Native features | Location permission, notifications, camera, opening the Maps app — use Capacitor plugins instead of browser-only APIs. |
+| Play Store policy | Google may reject an app that only loads a remote website. Bundling the UI in the APK (and using native features) avoids that and also makes the app open offline. |
+
+### Decision: Vite + React SPA (not Next.js)
+
+| Option | Verdict |
+|--------|---------|
+| **Vite + React + TypeScript SPA** + Vercel Functions in `/api` | ✅ **Recommended.** One `dist/` folder is used by both Vercel and Capacitor. Small API lives next to it on Vercel. Simple. |
+| Next.js with `output: 'export'` | Works, but you lose Server Actions, route handlers and middleware in the export, so you get Next.js complexity without its main benefits. |
+| Next.js on Vercel + Capacitor `server.url` pointing to the live site | ❌ Avoid. App is blank without internet, and it risks Play Store rejection as a "website wrapper". |
+
+Most data access does **not** need our own server: the app talks to **Supabase directly** with the user's login token, and Row-Level Security protects the data. Our Vercel API is only needed for things that need secrets (Google Places key, cron jobs).
+
+---
+
+## 3. Tech Stack
 
 | Layer | Choice | Why |
 |-------|--------|-----|
-| Framework | **Next.js (App Router) + TypeScript** | First-class on Vercel; frontend and API in one repo |
-| Styling / UI | **Tailwind CSS + shadcn/ui** | Fast to build, mobile-friendly |
-| Database | **Supabase (Postgres)** | Free tier, SQL, row-level security |
-| Auth | **Supabase Auth** (email magic link + Google sign-in) | Built in, no separate auth service |
+| Frontend | **Vite + React + TypeScript** | Static build that Capacitor can bundle |
+| Routing | **React Router** (or TanStack Router) | Client-side routing |
+| Data fetching / cache | **TanStack Query** (+ persisted cache) | Caching, offline viewing, retries |
+| Styling / UI | **Tailwind CSS + shadcn/ui** | Fast, mobile-friendly; respect Android safe areas |
+| Native wrapper | **Capacitor** (latest stable) + Android platform | Turns the web build into an Android app |
+| Database | **Supabase (Postgres)** | Free tier, SQL, Row-Level Security |
+| Auth | **Supabase Auth** — email **OTP code** + Google sign-in | OTP codes work in apps without deep-link setup |
 | File storage | **Supabase Storage** | Receipt and bike photos |
-| ORM / queries | **Drizzle ORM** (or the Supabase JS client) | Type-safe queries and migrations |
-| Validation | **Zod** | Shared validation for forms and API |
+| Validation | **Zod** | Shared by forms and API |
 | Forms | **React Hook Form** | Works with Zod |
-| Maps | **Google Maps JavaScript API** + **Places API (New)** | Map display and nearby workshop search |
+| Backend API | **Vercel Functions** (`/api/*.ts` in the same repo) | Google Places proxy, cron reminders |
+| Maps | **Google Maps JavaScript API** in the WebView + **Places API (New)** on the server | Same map code on web and Android |
 | Map React wrapper | `@vis.gl/react-google-maps` | Google-maintained React bindings |
-| Email reminders | **Resend** | Simple API, free tier |
+| Email | **Resend** | Reminder emails (web users) |
 | Scheduled jobs | **Vercel Cron Jobs** | Daily "what's due" check |
-| Hosting | **Vercel** | Preview deploy for every branch/PR |
+| Testing | **Vitest** + **Playwright** | Logic tests + end-to-end on the web build |
 
-> Other options: Neon + Auth.js instead of Supabase, or Leaflet + OpenStreetMap/Overpass instead of Google Maps (free, but less workshop data). Supabase + Google is the simplest way to start.
+### Capacitor plugins
 
----
+| Plugin | Used for |
+|--------|---------|
+| `@capacitor/geolocation` | Location permission + current position (falls back to browser API on web) |
+| `@capacitor/local-notifications` | "Engine oil due in 3 days" reminders scheduled on the phone, no server needed |
+| `@capacitor/push-notifications` *(later)* | Server-sent push via Firebase Cloud Messaging |
+| `@capacitor/camera` | Take a receipt / bike photo |
+| `@capacitor/app` | Deep links (`appUrlOpen`), Android back button |
+| `@capacitor/browser` | Open Google OAuth in a secure in-app browser tab |
+| `@capacitor/preferences` | Small settings stored on the device |
+| `@capacitor/share` | Share service history PDF / workshop location |
+| `@capacitor/network` | Show "offline" banner |
+| `@capacitor/splash-screen`, `@capacitor/status-bar` | App polish |
 
-## 3. Architecture
-
-```
-            ┌───────────────────────────── Vercel ─────────────────────────────┐
- Browser    │  Next.js App                                                     │
- (phone) ──►│   • Pages / React Server Components                              │
-            │   • Server Actions (CRUD for bikes, logs)                        │
-            │   • Route Handlers  /api/workshops/nearby  ──────► Google Places │
-            │   • Cron:  /api/cron/reminders (daily)  ─────────► Resend email  │
-            └──────────────┬───────────────────────────────────────────────────┘
-                           │
-                           ▼
-                 Supabase (Postgres + Auth + Storage)
-```
-
-- The **Maps JS key** runs in the browser, so it is restricted by HTTP referrer (your Vercel domains).
-- The **Places API key** stays on the server (in a Route Handler), so it is never exposed and can be rate-limited.
+Wrap every native call in a small module (`src/native/*.ts`) that checks `Capacitor.isNativePlatform()` and falls back to the browser API, so the web version keeps working.
 
 ---
 
-## 4. Data Model
+## 4. Architecture
+
+```
+┌──────────────── Android phone ────────────────┐      ┌──────────── Vercel ────────────┐
+│  Capacitor app                                │      │  Static web app (same dist/)   │
+│   • React SPA bundled in the APK              │      │  /api/workshops/nearby ────────┼──► Google Places API
+│   • Native plugins: GPS, notifications, camera│─────►│  /api/cron/reminders  ─────────┼──► Resend email
+│   • origin: https://localhost                 │ HTTPS│  /.well-known/assetlinks.json  │
+└───────────────┬───────────────────────────────┘      └───────────────┬────────────────┘
+                │ supabase-js (user JWT)                               │ service role
+                ▼                                                      ▼
+          ┌──────────── Supabase: Postgres + Auth + Storage (RLS on every table) ───────────┐
+          └─────────────────────────────────────────────────────────────────────────────────┘
+
+Browser users load the same SPA from Vercel and use the same Supabase + /api.
+```
+
+### Calling our API from the app
+
+- Base URL from env: `VITE_API_BASE_URL=https://<your-app>.vercel.app`.
+- Send the Supabase access token: `Authorization: Bearer <jwt>`; the function verifies it with Supabase.
+- **CORS** on `/api/*`: allow `https://localhost` (Capacitor Android), `capacitor://localhost` (future iOS), your Vercel domains and `http://localhost:5173` (dev).
+
+---
+
+## 5. Data Model
 
 ```sql
 -- users come from Supabase Auth (auth.users)
@@ -69,6 +122,7 @@ profiles (
   distance_unit text default 'km',     -- 'km' | 'mi'
   currency text default 'MYR',
   reminder_email boolean default true,
+  reminder_push boolean default true,
   created_at timestamptz
 )
 
@@ -86,12 +140,12 @@ motorcycles (
   created_at timestamptz
 )
 
-maintenance_types (              -- global defaults + user custom ones
+maintenance_types (              -- system defaults + user custom ones
   id uuid PK,
   user_id uuid null,            -- null = system default
   name text,                    -- "Engine Oil"
-  default_interval_km int null, -- 3000
-  default_interval_days int null, -- 180
+  default_interval_km int null,
+  default_interval_days int null,
   icon text
 )
 
@@ -112,13 +166,13 @@ maintenance_logs (
   odometer int,
   cost numeric(10,2) null,
   workshop_name text null,
-  google_place_id text null,    -- link to a workshop found on the map
+  google_place_id text null,
   notes text null,
   receipt_url text null,
   created_at timestamptz
 )
 
-odometer_readings (              -- history for estimating km/day
+odometer_readings (
   id uuid PK,
   motorcycle_id uuid,
   odometer int,
@@ -132,13 +186,21 @@ favorite_workshops (
   label text null,
   created_at timestamptz
 )
+
+devices (                        -- for server push later
+  id uuid PK,
+  user_id uuid,
+  platform text,                -- 'android' | 'web'
+  push_token text,
+  updated_at timestamptz
+)
 ```
 
-**Row-Level Security:** every table is filtered by `user_id = auth.uid()` (or through `motorcycles.user_id`), so users can only see their own data.
+**Row-Level Security:** every table is filtered by `user_id = auth.uid()` (or via `motorcycles.user_id`). This is essential because the app talks to Supabase directly. Only the public **anon key** ships in the APK; the **service role key** stays on Vercel.
 
-### Default maintenance items (seed data — user can change)
+### Default maintenance items (seed data — editable per bike)
 
-| Item | Default interval (km) | Default interval (time) |
+| Item | Interval (km) | Interval (time) |
 |------|-----|------|
 | Engine oil | 3,000 | 6 months |
 | Oil filter | 6,000 | 12 months |
@@ -155,13 +217,11 @@ favorite_workshops (
 | CVT belt (scooters) | 20,000 | 24 months |
 | Road tax / insurance renewal | — | 12 months |
 
-> These are generic. The real values should come from the bike's owner's manual, so every interval is editable per bike.
+> These are generic. Use the owner's manual values for each bike.
 
 ---
 
-## 5. Core Logic: "What's due?"
-
-For each active schedule on a bike:
+## 6. Core Logic: "What's due?"
 
 ```
 last         = latest maintenance_log for that type (or purchase date / odometer 0)
@@ -179,202 +239,290 @@ status =
   OK        otherwise
 ```
 
-Put this in a pure function (`lib/maintenance/due.ts`) with unit tests. The dashboard, the reminder cron job and the bike detail page all use it.
+Pure function in `src/lib/maintenance/due.ts` with unit tests. It's used by the dashboard, by the **on-device notification scheduler**, and by the Vercel cron job (import the same file in `/api`).
 
 ---
 
-## 6. Nearby Workshops (Google Maps + Location Permission)
+## 7. Nearby Workshops (location permission + Google Maps)
 
-### Flow
+### Permission flow (same UI on web and Android)
 
-1. The user opens **Workshops**. Location is **not** requested on page load.
-2. Show an explanation card: *"Allow location to find workshops near you"* with a **Use my location** button.
-3. On click, call `navigator.geolocation.getCurrentPosition()` — this is what makes the browser show its permission prompt.
-4. Handle every case:
-   - **Granted** → send lat/lng to `/api/workshops/nearby` → show map + list.
-   - **Denied** → explain how to turn it back on in browser settings, and offer a **search by city/postcode** box instead.
-   - **Timeout / unavailable** → retry button + manual search.
-5. Use `navigator.permissions.query({ name: 'geolocation' })` to know if permission was already given, so returning users skip step 2.
+1. The user opens **Workshops**. Location is **not** asked on app start.
+2. Explanation card: *"Allow location to find workshops near you"* + **Use my location** button.
+3. On tap:
+   - **Android:** `Geolocation.checkPermissions()` → if `prompt`, call `Geolocation.requestPermissions()` → Android's system dialog appears.
+   - **Web:** `navigator.geolocation.getCurrentPosition()` triggers the browser prompt (HTTPS required — Vercel provides it).
+4. Then `Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 })`.
+5. Handle every case:
+   - **Granted (precise or approximate)** → call `/api/workshops/nearby`. Android 12+ users may pick "Approximate" — that's fine for workshop search.
+   - **Denied** → explain why and show a button to open app settings; offer **search by city/postcode**.
+   - **GPS off / timeout** → ask to turn on location, retry, or manual search.
 
-> Geolocation only works on **HTTPS**. Vercel gives you HTTPS on every deployment. `localhost` also works for development.
+**Android setup** (`android/app/src/main/AndroidManifest.xml`):
 
-### Server Route `/api/workshops/nearby`
+```xml
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-feature android:name="android.hardware.location.gps" android:required="false" />
+```
 
-- Input: `lat`, `lng`, `radius` (default 5 km), validated with Zod.
-- Calls **Places API (New) – Nearby Search** with type `motorcycle_repair` / `car_repair`, or **Text Search** with `"motorcycle workshop"`; ranking by distance.
-- Use a **field mask** to ask only for what you need (`id, displayName, location, rating, userRatingCount, currentOpeningHours.openNow, nationalPhoneNumber, formattedAddress`). Fewer fields = cheaper.
-- Rate-limit per user/IP (e.g. Upstash Redis) so the bill cannot run away.
-- Round coordinates (~100 m) and cache the response for a few minutes.
+We only need **foreground** location — do **not** ask for background location (Google Play reviews it strictly).
 
-### UI
+### Map rendering
 
-- Map with markers + list sorted by distance; filter "Open now", minimum rating.
-- Each workshop: **Call**, **Directions** (opens Google Maps app with `https://www.google.com/maps/dir/?api=1&destination_place_id=...`), **Save to favorites**, **Log service here** (fills `workshop_name` + `google_place_id` in a new maintenance log).
+| Option | Verdict |
+|--------|---------|
+| **Google Maps JavaScript API inside the WebView** | ✅ **Start here.** Same code on web and Android. |
+| `@capacitor/google-maps` (native map) | Smoother on low-end phones, but it's a separate API, needs a second key, and the map is drawn *behind* the WebView (layout gets more complicated). Consider later if performance is a problem. |
+
+**API keys:**
+
+- **Browser/WebView key** (Maps JavaScript API only): HTTP-referrer restricted to your Vercel domains **plus `https://localhost/*`** for the Android app.
+- **Server key** (Places API (New) only): used only in `/api/workshops/nearby`, never shipped in the APK.
+- (Only if you use the native maps plugin later: an **Android key** restricted to the package name + SHA-1 of the signing certificate — including the Play App Signing SHA-1.)
+
+### `/api/workshops/nearby` (Vercel Function)
+
+- Input `lat`, `lng`, `radius` (default 5 km), validated with Zod; requires the Supabase JWT.
+- Places API (New) **Nearby Search** (`motorcycle_repair` / `car_repair`) or **Text Search** "motorcycle workshop"; rank by distance.
+- **Field mask** with only what we show (`id, displayName, location, rating, userRatingCount, currentOpeningHours.openNow, nationalPhoneNumber, formattedAddress`) → cheaper.
+- Rate limit per user (Upstash Redis). Round coordinates to ~100 m and cache a few minutes.
+
+### Workshop actions
+
+- **Directions:** open `https://www.google.com/maps/dir/?api=1&destination=<lat>,<lng>&destination_place_id=<id>` — on Android this opens the Google Maps app.
+- **Call:** `tel:` link opens the phone dialer.
+- **Save to favorites**, **Log service here** (fills workshop name + `place_id` into a new log).
 
 ### Cost control
 
-- Google Maps Platform gives a free monthly usage amount per API; after that you pay per request.
-- In Google Cloud Console: set **budget alerts**, **per-day quotas** on Places API, and **key restrictions** (referrer for the browser key, API restriction for the server key).
-- Google's terms say you may store `place_id` long-term but not copy other place details into your database — fetch fresh details when needed.
+Budget alerts + per-day quota on Places API in Google Cloud Console, key restrictions, field masks, caching. Store only `place_id` long-term (Google ToS).
 
 ---
 
-## 7. Pages / Routes
+## 8. Authentication in the Android app
+
+| Method | How it works in Capacitor |
+|--------|---------------------------|
+| **Email OTP code** (recommended first) | User types email → gets a 6-digit code → types it in the app. No redirect, no deep link needed. |
+| **Google sign-in** | `supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: 'com.fadzyll.motorcycle://auth/callback', skipBrowserRedirect: true } })` → open the URL with `@capacitor/browser` → app catches the redirect via `App.addListener('appUrlOpen')` → `supabase.auth.exchangeCodeForSession(code)` (PKCE). Add the custom scheme to Supabase "Redirect URLs" and an intent filter in `AndroidManifest.xml`. |
+| **Magic link** (optional) | Needs **Android App Links**: host `/.well-known/assetlinks.json` on Vercel with the app's SHA-256 fingerprint, so `https://<your-app>.vercel.app/auth/callback` opens the app. |
+
+The Supabase session is persisted in the WebView storage and auto-refreshed. Also handle the Android **back button** with `App.addListener('backButton')`.
+
+---
+
+## 9. Reminders
+
+| Platform | Mechanism |
+|----------|-----------|
+| **Android** | `@capacitor/local-notifications`: whenever logs/odometer change, recompute due dates and **re-schedule** notifications on the phone (e.g. 7 days before and on the due date). Works offline and costs nothing. Android 13+ needs the **POST_NOTIFICATIONS** permission — ask when the user turns on reminders, not on first launch. |
+| **Web** | Daily **Vercel Cron** → `/api/cron/reminders` (protected by `CRON_SECRET`) → email via Resend. |
+| **Later** | Server push with `@capacitor/push-notifications` + Firebase Cloud Messaging (needs `google-services.json` and the `devices` table). Useful for things the phone can't know, e.g. a workshop messaging you. |
+
+Known issue: some Android brands (Xiaomi, Oppo, Vivo, Huawei) kill scheduled notifications through battery optimisation. Add a short help tip for those users, and keep email as a backup.
+
+---
+
+## 10. Offline support
+
+- The UI is bundled in the APK, so the app always opens.
+- Persist TanStack Query cache (IndexedDB) → last-known bikes, logs and due status are visible offline.
+- `@capacitor/network` shows an "offline" banner; disable saving (or queue writes) while offline. Simple first version: read-only offline.
+
+---
+
+## 11. Project Structure
 
 ```
-/                       Landing page (public)
-/login                  Sign in (magic link / Google)
-/dashboard              All bikes, overdue + due-soon items at the top
-/bikes/new              Add motorcycle
-/bikes/[id]             Bike detail: status of every item, quick "update odometer"
-/bikes/[id]/log/new     Log a service (pick one or more items done at once)
-/bikes/[id]/history     Timeline of all services + total cost
-/bikes/[id]/schedule    Edit intervals for this bike
-/workshops              Map + nearby list (asks for location)
-/workshops/favorites    Saved workshops
-/settings               Units, currency, reminders, export data, delete account
+api/                          Vercel Functions (Node)
+  workshops/nearby.ts
+  cron/reminders.ts
+  _lib/cors.ts  _lib/auth.ts  _lib/places.ts
+src/
+  main.tsx  App.tsx  routes/
+  pages/                      dashboard, bikes, workshops, settings, login
+  components/ui/              shadcn components
+  components/bikes/ maintenance/ workshops/
+  lib/
+    maintenance/due.ts        "what's due" logic (+ due.test.ts)
+    supabase.ts               supabase-js client
+    api.ts                    fetch wrapper using VITE_API_BASE_URL + JWT
+    validation/               Zod schemas
+  native/                     wrappers with web fallbacks
+    location.ts  notifications.ts  camera.ts  deeplinks.ts
+public/
+  .well-known/assetlinks.json (only if using App Links)
+android/                      generated by `npx cap add android` (commit it)
+supabase/migrations/          SQL migrations + RLS + seed data
+capacitor.config.ts
+vercel.json
+vite.config.ts
+```
 
-/api/workshops/nearby   GET  → Google Places (server-side)
-/api/cron/reminders     GET  → called by Vercel Cron, protected with CRON_SECRET
+### `capacitor.config.ts`
+
+```ts
+import type { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'com.fadzyll.motorcycle',   // final package name — can't change after Play release
+  appName: 'Motorcycle System',
+  webDir: 'dist',
+  // server: { url: 'http://192.168.x.x:5173', cleartext: true }, // dev live-reload only, never ship this
+};
+
+export default config;
 ```
 
 ---
 
-## 8. Project Structure
+## 12. Environment Variables
 
-```
-app/
-  (marketing)/page.tsx
-  (app)/dashboard/page.tsx
-  (app)/bikes/[id]/...
-  (app)/workshops/page.tsx
-  api/workshops/nearby/route.ts
-  api/cron/reminders/route.ts
-components/
-  ui/                   shadcn components
-  bikes/  maintenance/  workshops/
-lib/
-  db/schema.ts          Drizzle schema
-  db/queries.ts
-  maintenance/due.ts    "what's due" logic (+ due.test.ts)
-  google/places.ts      Places API client (server only)
-  supabase/server.ts  supabase/client.ts
-  validation/           Zod schemas
-supabase/migrations/    SQL migrations + RLS policies + seed data
-vercel.json             cron config
-```
+Vite only exposes variables starting with `VITE_` to the frontend — and **everything in the frontend ends up inside the APK**, so never put secrets there.
+
+| Name | Used by | Ships in APK? |
+|------|---------|---------------|
+| `VITE_SUPABASE_URL` | frontend | yes (public) |
+| `VITE_SUPABASE_ANON_KEY` | frontend | yes (protected by RLS) |
+| `VITE_API_BASE_URL` | frontend | yes — `https://<your-app>.vercel.app` |
+| `VITE_GOOGLE_MAPS_API_KEY` | frontend map | yes (referrer-restricted) |
+| `VITE_GOOGLE_MAP_ID` | frontend map | yes |
+| `SUPABASE_SERVICE_ROLE_KEY` | `/api/cron` | **no** — Vercel only |
+| `GOOGLE_PLACES_API_KEY` | `/api/workshops` | **no** — Vercel only |
+| `RESEND_API_KEY` | `/api/cron` | **no** — Vercel only |
+| `CRON_SECRET` | `/api/cron` | **no** — Vercel only |
+
+For the Android build, put the `VITE_*` values in `.env.production` locally (or in CI secrets) before `npm run build`. Commit only `.env.example`.
 
 ---
 
-## 9. Environment Variables (Vercel → Project → Settings → Environment Variables)
+## 13. Build & Deploy
 
-| Name | Where used | Public? |
-|------|-----------|---------|
-| `NEXT_PUBLIC_SUPABASE_URL` | client + server | yes |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | client + server | yes (protected by RLS) |
-| `SUPABASE_SERVICE_ROLE_KEY` | cron job only | **no** |
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | map in browser (referrer-restricted) | yes |
-| `NEXT_PUBLIC_GOOGLE_MAP_ID` | map styling / advanced markers | yes |
-| `GOOGLE_PLACES_API_KEY` | `/api/workshops/nearby` | **no** |
-| `RESEND_API_KEY` | reminder emails | **no** |
-| `CRON_SECRET` | protects `/api/cron/*` | **no** |
+### Web (Vercel)
 
-Never commit `.env.local`; add `.env.example` with empty values instead.
-
----
-
-## 10. Deployment on Vercel
-
-1. Import the GitHub repo in Vercel (framework: Next.js is auto-detected).
-2. Create a Supabase project, run migrations from `supabase/migrations`.
-3. Add the environment variables above (separately for Preview and Production).
-4. In Supabase Auth settings, add your Vercel domain(s) as redirect URLs.
-5. In Google Cloud: enable *Maps JavaScript API* and *Places API (New)*, create the two keys, add restrictions and a budget alert.
-6. Add `vercel.json`:
+1. Import the repo in Vercel → framework preset **Vite**, output `dist`. Files in `/api` become Functions automatically.
+2. Add env vars (Preview + Production).
+3. Add SPA fallback in `vercel.json` so deep URLs work:
    ```json
-   { "crons": [{ "path": "/api/cron/reminders", "schedule": "0 1 * * *" }] }
+   {
+     "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
+     "crons": [{ "path": "/api/cron/reminders", "schedule": "0 1 * * *" }]
+   }
    ```
-   (Hobby plan allows daily crons — enough for reminders.)
-7. Every push to a branch gets a Preview URL; merging to `main` deploys Production.
+
+### Android (Capacitor)
+
+Requirements: **Node LTS**, **Android Studio** (bundled JDK), an Android phone with USB debugging or an emulator.
+
+```bash
+npm install @capacitor/core @capacitor/cli @capacitor/android
+npx cap init "Motorcycle System" com.fadzyll.motorcycle --web-dir dist
+npx cap add android
+npm run build && npx cap sync android     # run after every web change
+npx cap run android                        # or: npx cap open android
+```
+
+- App icon + splash: `@capacitor/assets` generates all sizes from one image.
+- Release: in Android Studio, **Build → Generate Signed Bundle (.aab)**. Keep the keystore file and passwords safe — you need them for every update (Play App Signing helps).
+- Optional CI: GitHub Actions job that builds the web app, runs `cap sync`, and builds a debug APK on every PR.
+
+### Google Play
+
+- Google Play Console developer account (one-time fee).
+- **Privacy policy URL** (host it on Vercel, e.g. `/privacy`) — required because we use location.
+- **Data safety form**: approximate/precise location (used for the app's functionality, not shared, not stored), email (account), photos (optional).
+- New personal developer accounts must run a **closed test with a group of testers for a set period** before going to production — plan time for this (check the current requirement in Play Console).
+- Target the API level Google Play currently requires (Capacitor's latest version is kept up to date with this).
+
+### Updates
+
+- UI changes → web is updated instantly on Vercel; Android needs a new build to Play Store.
+- Optional later: live updates (e.g. Capgo or Ionic Appflow) push web-layer updates without a Play release. Native/plugin changes still need a store release.
 
 ---
 
-## 11. Roadmap
+## 14. Roadmap
 
-### Phase 0 — Setup (1–2 days)
-- Next.js + TypeScript + Tailwind + shadcn/ui, ESLint/Prettier
-- Supabase project, auth, first migration, RLS
-- Deploy empty app to Vercel; GitHub Actions for lint + typecheck + tests
+### Phase 0 — Setup (2–3 days)
+- Vite + React + TS + Tailwind + shadcn/ui, ESLint/Prettier, Vitest
+- Supabase project, auth (OTP), first migration, RLS
+- Deploy to Vercel; one sample `/api/health` function with CORS
+- `npx cap add android`, run the app on a real phone
+- GitHub Actions: lint, typecheck, tests, build
 
-### Phase 1 — MVP: Maintenance tracking (1–2 weeks)
-- Add/edit motorcycles
-- Default maintenance items + per-bike intervals
-- Log service (multiple items in one visit), update odometer
-- Dashboard with OK / Due soon / Overdue
-- Service history + total cost
+### Phase 1 — MVP: maintenance tracking (1–2 weeks)
+- Add/edit motorcycles, default items + per-bike intervals
+- Log service (several items in one visit), update odometer
+- Dashboard with OK / Due soon / Overdue; history + total cost
+- Android back button + safe-area layout
 
 ### Phase 2 — Nearby workshops (1 week)
-- Location permission flow + manual search fallback
+- `src/native/location.ts` with Capacitor + web fallback, full permission flow
 - `/api/workshops/nearby` with Places API, field mask, rate limit
-- Map + list, open now, call, directions, favorites
-- "Log service here" link from workshop to maintenance log
+- Map + list, open now, call, directions, favorites, "log service here"
 
-### Phase 3 — Reminders & PWA (1 week)
-- Daily cron → email when items become due soon / overdue
-- PWA (installable on phone home screen, offline view of last data)
-- Web push notifications (optional, in addition to email)
+### Phase 3 — Reminders, camera & offline (1 week)
+- Local notifications on Android, email cron for web
+- Receipt photos with `@capacitor/camera`
+- Persisted query cache + offline banner
 
-### Phase 4 — Extras (pick what you like, see below)
+### Phase 4 — Google Play release (1–2 weeks, mostly waiting)
+- Icons, splash, privacy policy, data safety form, screenshots
+- Signed AAB, internal test → closed test → production
+
+### Phase 5 — Extras (see below)
 
 ---
 
-## 12. Extra Features You Can Add
+## 15. Extra Features You Can Add
 
 **Maintenance & ownership**
-- 📸 **Receipt photos** attached to each service log; later OCR to auto-fill cost and date.
-- ⛽ **Fuel log** — litres, price, odometer → fuel consumption (km/L) and monthly fuel cost.
-- 💰 **Expense dashboard** — charts of cost per month, per category, cost per km.
-- 📄 **Document wallet** — road tax, insurance, licence expiry dates with reminders.
-- 🔧 **Parts list** — save part numbers / oil grade / tyre size for your bike so you know what to buy.
-- 📈 **Smart odometer estimate** — predict mileage from your riding history so reminders work even if you forget to update the odometer.
-- 🧾 **Export / PDF service book** — useful when selling the bike (shows full history = higher resale value).
-- 🏍️ **Bike model presets** — pick "Honda RS150R" / "Yamaha Y15ZR" etc. and auto-fill recommended intervals.
+- 📸 **Receipt photos** (native camera); later OCR to auto-fill cost and date.
+- ⛽ **Fuel log** — litres, price, odometer → km/L and monthly fuel cost.
+- 💰 **Expense dashboard** — cost per month, per category, cost per km.
+- 📄 **Document wallet** — road tax, insurance, licence expiry with reminders.
+- 🔧 **Parts list** — oil grade, tyre size, part numbers for your bike.
+- 🏍️ **Bike model presets** — choose your model, recommended intervals auto-fill.
+- 🧾 **PDF service book** — share via `@capacitor/share`, helps resale value.
+- 📲 **Home-screen widget** (native Android) — "Engine oil due in 450 km".
 
 **Workshops & map**
-- ⭐ **Your own workshop reviews** and price notes ("oil change here costs RM45").
-- 🛞 **Filter by service type** — tyre shop, big bike specialist, authorised dealer.
-- ⛽ **Nearby petrol stations** and **parking** using the same map.
-- 🆘 **Emergency / breakdown mode** — one button: share live location to a contact via WhatsApp, show closest workshop + towing numbers.
+- ⭐ Your own workshop notes and prices ("oil change here RM45").
+- 🛞 Filter by service type — tyre shop, big bike specialist, authorised dealer.
+- ⛽ Nearby petrol stations and parking on the same map.
+- 🆘 **Emergency mode** — one button: share live location on WhatsApp, show the closest workshop and towing numbers.
 
 **Riding**
-- 🗺️ **Trip log** — record rides with GPS, auto-add km to the odometer.
-- 🌧️ **Weather check** before a ride (OpenWeather API).
-- ✅ **Pre-ride checklist** (T-CLOCS: tyres, controls, lights, oil, chassis, stand).
+- 🗺️ Trip log with GPS (foreground only), auto-adds km to the odometer.
+- 🌧️ Weather check before a ride.
+- ✅ Pre-ride checklist (T-CLOCS: tyres, controls, lights, oil, chassis, stand).
+- 🔵 Bluetooth OBD / smart-bike integration (some newer bikes) — advanced, native plugin.
 
 **Social / multi-user**
-- 👨‍👩‍👦 **Share a bike** with family member or mechanic (read-only link).
-- 🔧 **Workshop portal** — mechanics can log the service directly into the customer's bike history via QR code.
+- 👨‍👩‍👦 Share a bike with a family member (read-only).
+- 🔧 Workshop scans a QR code on your phone and logs the service into your history.
 
 **AI (later)**
-- 🤖 **Ask about your bike** — "Strange noise when braking, what could it be?" using the bike's history as context.
-- 🧠 **Read manual intervals** — upload the owner's manual PDF and auto-generate the maintenance schedule.
+- 🤖 "Strange noise when braking — what could it be?" using the bike's history as context.
+- 🧠 Upload the owner's manual PDF → auto-generate the maintenance schedule.
 
 ---
 
-## 13. Non-Functional Requirements
+## 16. Non-Functional Requirements
 
-- **Security:** RLS on all tables, secrets only on the server, Zod validation on every input, rate limit on public APIs.
-- **Privacy:** location is used only for the search request and is **not stored**; say this in a short privacy notice. Provide "export my data" and "delete my account".
-- **Performance:** Server Components for data pages, lazy-load the map script only on `/workshops`.
-- **Accessibility:** large touch targets, good contrast (readable in sunlight), dark mode.
-- **Testing:** Vitest for `due.ts` and validation; Playwright for main flows (add bike → log service → dashboard shows OK); mock geolocation in Playwright to test the permission flow.
-- **Monitoring:** Vercel Analytics + Sentry (free tier) for errors.
+- **Security:** RLS on every table, no secrets in `VITE_*` variables, JWT check + Zod validation + rate limit on `/api`, strict CORS list.
+- **Privacy:** location used only for the search request and **not stored**; privacy policy page; "export my data" and "delete my account" (Google Play requires an account-deletion option for apps with accounts).
+- **Performance:** load the Google Maps script only on the Workshops page; keep the bundle small for low-end Android phones; test on a real budget device.
+- **Accessibility / UX:** big touch targets, readable in sunlight, dark mode, Android safe areas, back button behaviour.
+- **Testing:** Vitest for `due.ts`, validation and the `native/` wrappers (mock Capacitor); Playwright with mocked geolocation for the web flow; manual test checklist on a real Android phone for permissions and notifications.
+- **Monitoring:** Sentry (has a Capacitor SDK) for crashes on web and Android; Vercel Analytics for web.
 
 ---
 
-## 14. Next Steps
+## 17. Next Steps
 
-1. Agree on the stack (Supabase vs Neon, Google Maps vs OpenStreetMap).
-2. Scaffold Phase 0 and deploy to Vercel.
-3. Build Phase 1 (maintenance tracking) — the core value of the app.
-4. Add Phase 2 (workshop map) once the Google Cloud keys are ready.
+1. Confirm: Vite + React SPA, Supabase, Google Maps JS in the WebView.
+2. Choose the final **app ID** (e.g. `com.fadzyll.motorcycle`) — it can't change after the first Play Store release.
+3. Scaffold Phase 0: web on Vercel + Android app running on your phone.
+4. Build Phase 1 (maintenance tracking), then Phase 2 (workshop map).
