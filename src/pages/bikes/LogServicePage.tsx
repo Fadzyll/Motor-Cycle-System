@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ItemIcon } from '@/components/maintenance/ItemIcon'
+import { ServiceKmField } from '@/components/maintenance/ServiceKmField'
 import { StatusBadge } from '@/components/maintenance/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -38,6 +39,7 @@ function LogServiceForm({ bike, items }: { bike: Motorcycle; items: StatusItem[]
   const [values, setValues] = useState<ServiceFormValues>(() => ({
     performedAt: toDateInputValue(localToday()),
     odometer: bike.current_odometer == null ? '' : String(bike.current_odometer),
+    kmMode: 'reading',
     items: preselected && items.some((i) => i.typeId === preselected) ? { [preselected]: '' } : {},
     workshopName: '',
     notes: '',
@@ -61,7 +63,7 @@ function LogServiceForm({ bike, items }: { bike: Motorcycle; items: StatusItem[]
 
   function submit(e: FormEvent) {
     e.preventDefault()
-    const result = validateService(values)
+    const result = validateService(values, undefined, bike.current_odometer)
     if (!result.ok) {
       setErrors(result.errors)
       return
@@ -83,7 +85,7 @@ function LogServiceForm({ bike, items }: { bike: Motorcycle; items: StatusItem[]
         className="space-y-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-6 lg:space-y-0"
       >
         <div className="space-y-4 lg:col-start-2 lg:row-start-1">
-          <Card className="grid grid-cols-2 gap-3">
+          <Card className="space-y-4">
             <Field
               label="Date"
               htmlFor="performedAt"
@@ -98,19 +100,21 @@ function LogServiceForm({ bike, items }: { bike: Motorcycle; items: StatusItem[]
                 onChange={(e) => set('performedAt', e.target.value)}
               />
             </Field>
-            <Field
-              label="Odometer (km)"
-              htmlFor="odometer"
-              hint="Km at that service (see the workshop sticker). Empty if unknown"
+            <ServiceKmField
+              mode={values.kmMode}
+              value={values.odometer}
+              currentOdometer={bike.current_odometer}
               error={errors.odometer}
-            >
-              <Input
-                id="odometer"
-                inputMode="numeric"
-                value={values.odometer}
-                onChange={(e) => set('odometer', e.target.value.replace(/[^\d]/g, ''))}
-              />
-            </Field>
+              onModeChange={(kmMode) =>
+                // switching mode: clear the number so a reading isn't read as "km ridden"
+                setValues((v) => ({
+                  ...v,
+                  kmMode,
+                  odometer: kmMode === 'reading' ? String(bike.current_odometer ?? '') : '',
+                }))
+              }
+              onValueChange={(odometer) => set('odometer', odometer)}
+            />
           </Card>
         </div>
 

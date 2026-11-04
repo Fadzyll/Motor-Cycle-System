@@ -167,3 +167,20 @@ export function useSaveRide() {
     onSuccess: invalidate,
   })
 }
+
+export function useAddKmRidden() {
+  const invalidate = useInvalidateAll()
+  return useMutation({
+    mutationFn: ({ bike, km }: { bike: Motorcycle; km: number }) => api.addKmRidden(bike, km),
+    onSuccess: invalidate,
+  })
+}
+
+export function useUpdateVisit() {
+  const invalidate = useInvalidateAll()
+  return useMutation({
+    mutationFn: ({ bike, logIds, update }: { bike: Motorcycle; logIds: string[]; update: api.VisitUpdate }) =>
+      api.updateVisit(bike, logIds, update),
+    onSuccess: invalidate,
+  })
+}

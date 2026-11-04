@@ -1,9 +1,12 @@
 import type { ServiceInput } from '@/lib/data/api'
 import { localToday, toDateInputValue } from '@/lib/dates'
+import { serviceOdometer, type ServiceKmMode } from '@/lib/odometer'
 
 export interface ServiceFormValues {
   performedAt: string
+  /** Odometer at the service, or km ridden since it — see kmMode. Empty = unknown. */
   odometer: string
+  kmMode: ServiceKmMode
   /** typeId → cost text ('' = no cost) for every ticked item. */
   items: Record<string, string>
   workshopName: string
@@ -22,6 +25,7 @@ export function parseCost(value: string): number | null | undefined {
 export function validateService(
   values: ServiceFormValues,
   today: Date = localToday(),
+  currentOdometer: number | null = null,
 ): { ok: true; input: ServiceInput } | { ok: false; errors: ServiceFormErrors } {
   const errors: ServiceFormErrors = {}
 
@@ -30,8 +34,9 @@ export function validateService(
 
   // Optional: empty when the meter is broken.
   const odoText = values.odometer.trim()
-  const odometer = odoText === '' ? null : Number(odoText)
-  if (odometer != null && (!Number.isInteger(odometer) || odometer < 0)) errors.odometer = 'Enter the odometer in whole km'
+  const km = serviceOdometer(values.kmMode, odoText === '' ? null : Number(odoText), currentOdometer)
+  if (!km.ok) errors.odometer = km.error
+  const odometer = km.ok ? km.odometer : null
 
   const entries = Object.entries(values.items)
   if (entries.length === 0) errors.items = 'Tick at least one item you had done'

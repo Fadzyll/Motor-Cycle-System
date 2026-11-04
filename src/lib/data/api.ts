@@ -90,6 +90,22 @@ export async function updateOdometer(bike: Motorcycle, odometer: number): Promis
   check(await supabase.from('motorcycles').update({ current_odometer: odometer }).eq('id', bike.id))
 }
 
+/**
+ * "I rode N km": adds to the odometer. A bike without one (broken meter) starts
+ * counting from 0, so km-based items are tracked from now on.
+ */
+export async function addKmRidden(bike: Motorcycle, km: number): Promise<void> {
+  if (!Number.isInteger(km) || km <= 0) throw new Error('Enter the km you rode')
+  const now = Date.now()
+  const end = (bike.current_odometer ?? 0) + km
+  const readings = [{ motorcycle_id: bike.id, odometer: end, recorded_at: new Date(now).toISOString() }]
+  if (bike.current_odometer == null) {
+    readings.unshift({ motorcycle_id: bike.id, odometer: 0, recorded_at: new Date(now - 1000).toISOString() })
+  }
+  check(await supabase.from('odometer_readings').insert(readings))
+  check(await supabase.from('motorcycles').update({ current_odometer: end }).eq('id', bike.id))
+}
+
 // ───────────────────────── maintenance types ───────────────────
 
 export async function listDefaultTypes(): Promise<MaintenanceType[]> {
@@ -205,6 +221,38 @@ export async function logService(bike: Motorcycle, input: ServiceInput): Promise
   )
   if (bike.current_odometer == null || input.odometer > bike.current_odometer) {
     check(await supabase.from('motorcycles').update({ current_odometer: input.odometer }).eq('id', bike.id))
+  }
+}
+
+export interface VisitUpdate {
+  performedAt: string
+  odometer: number | null
+  workshopName: string | null
+  notes: string | null
+  /** log id → cost */
+  costs: Record<string, number | null>
+}
+
+/** Edits one service visit (all its item rows share date, km, workshop and notes). */
+export async function updateVisit(bike: Motorcycle, logIds: string[], update: VisitUpdate): Promise<void> {
+  const results = await Promise.all(
+    logIds.map((id) =>
+      supabase
+        .from('maintenance_logs')
+        .update({
+          performed_at: update.performedAt,
+          odometer: update.odometer,
+          workshop_name: update.workshopName,
+          notes: update.notes,
+          cost: update.costs[id] ?? null,
+        })
+        .eq('id', id),
+    ),
+  )
+  results.forEach(check)
+  if (update.odometer != null && (bike.current_odometer == null || update.odometer > bike.current_odometer)) {
+    check(await supabase.from('odometer_readings').insert({ motorcycle_id: bike.id, odometer: update.odometer }))
+    check(await supabase.from('motorcycles').update({ current_odometer: update.odometer }).eq('id', bike.id))
   }
 }
 
