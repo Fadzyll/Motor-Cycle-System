@@ -10,7 +10,8 @@ import { sendEmailCode, verifyEmailCode } from '@/lib/auth/actions'
 import { useAuth } from '@/lib/auth/context'
 
 const emailSchema = z.email('Enter a valid email address')
-const codeSchema = z.string().regex(/^\d{6}$/, 'The code has 6 digits')
+// Supabase sends 6–10 digit codes depending on the project's "Email OTP Length" setting.
+const codeSchema = z.string().regex(/^\d{6,10}$/, 'Enter the full code from the email')
 
 export function LoginPage() {
   const { session } = useAuth()
@@ -90,16 +91,16 @@ export function LoginPage() {
           ) : (
             <form onSubmit={onVerify} noValidate>
               <p className="mb-4 text-sm">
-                We sent a 6-digit code to <strong>{email}</strong>.
+                We sent a sign-in code to <strong>{email}</strong>.
               </p>
               <Label htmlFor="code">Code</Label>
               <Input
                 id="code"
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                maxLength={6}
-                placeholder="123456"
-                className="text-center text-xl tracking-[0.5em]"
+                maxLength={10}
+                placeholder="Code from email"
+                className="text-center text-xl tracking-[0.3em] placeholder:tracking-normal"
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
               />
