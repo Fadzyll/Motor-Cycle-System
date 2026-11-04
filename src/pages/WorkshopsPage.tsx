@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card'
 
 export function WorkshopsPage() {
   return (
-    <>
+    <div className="max-w-2xl">
       <PageHeader title="Nearby workshops" />
       <Card className="flex items-start gap-3 text-sm">
         <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
@@ -13,6 +13,6 @@ export function WorkshopsPage() {
           tap <strong>Use my location</strong>.
         </p>
       </Card>
-    </>
+    </div>
   )
 }

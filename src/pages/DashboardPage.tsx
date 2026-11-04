@@ -37,9 +37,9 @@ export function DashboardPage() {
       ) : !data || data.length === 0 ? (
         <EmptyBikes />
       ) : (
-        <div className="space-y-4">
+        <div className="grid items-start gap-4 lg:grid-cols-2 2xl:grid-cols-3">
           {attention === 0 && (
-            <Card className="flex items-center gap-3 text-sm">
+            <Card className="flex items-center gap-3 text-sm lg:col-span-full">
               <CheckCircle2 className="h-5 w-5 shrink-0 text-ok" aria-hidden />
               All good — nothing is due soon.
             </Card>

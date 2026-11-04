@@ -22,7 +22,7 @@ export function EditBikePage() {
   if (!bike) return <ErrorState error="Motorcycle not found" />
 
   return (
-    <>
+    <div className="max-w-2xl">
       <PageHeader title={`Edit ${bike.nickname}`} backTo={`/bikes/${bike.id}`} />
       <Card>
         <BikeForm
@@ -59,6 +59,6 @@ export function EditBikePage() {
           </Button>
         </div>
       </Dialog>
-    </>
+    </div>
   )
 }

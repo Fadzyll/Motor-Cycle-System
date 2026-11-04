@@ -25,7 +25,7 @@ export function SettingsPage() {
   }
 
   return (
-    <>
+    <div className="max-w-2xl">
       <PageHeader title="Settings" />
 
       <Card className="mb-4">
@@ -55,6 +55,6 @@ export function SettingsPage() {
         </Button>
         {health && <p className="mt-2 text-sm">{health}</p>}
       </Card>
-    </>
+    </div>
   )
 }
