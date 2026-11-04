@@ -12,13 +12,25 @@ import { useBikeStatus } from '@/lib/data/hooks'
 import { bikeSubtitle, formatDate, formatKm } from '@/lib/format'
 import type { StatusItem } from '@/lib/maintenance/status'
 
-function Section({ title, items, bikeId }: { title: string; items: StatusItem[]; bikeId: string }) {
+function Section({
+  title,
+  subtitle,
+  items,
+  bikeId,
+}: {
+  title: string
+  subtitle?: string
+  items: StatusItem[]
+  bikeId: string
+}) {
   if (!items.length) return null
   return (
     <section>
-      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
         {title} ({items.length})
       </h2>
+      {subtitle && <p className="mt-0.5 text-xs text-muted">{subtitle}</p>}
+      <div className="mb-2" />
       <Card className="overflow-hidden p-0">
         {/* -mb-px hides the last row's bottom border inside the card */}
         <div className="-mb-px grid grid-cols-1 lg:grid-cols-2">
@@ -43,9 +55,6 @@ export function BikeDetailPage() {
   if (error) return <ErrorState error={error} />
   if (!bike || !items) return <ErrorState error="Motorcycle not found" />
 
-  const attention = items.filter((i) => i.due.status === 'overdue' || i.due.status === 'due_soon')
-  const ok = items.filter((i) => i.due.status === 'ok')
-  const other = items.filter((i) => i.due.status === 'unknown')
   const lastService = items
     .map((i) => i.lastService?.performedAt)
     .filter(Boolean)
@@ -131,10 +140,13 @@ export function BikeDetailPage() {
           </Card>
         ) : (
           <>
-            <Section title="Needs attention" items={attention} bikeId={bike.id} />
-            <Section title="OK" items={ok} bikeId={bike.id} />
-            <Section title="Can't calculate" items={other} bikeId={bike.id} />
-            <p className="text-center text-xs text-muted">Tap an item to log that service.</p>
+            {/* items are already sorted: overdue → due soon → OK → can't calculate */}
+            <Section
+              title="Maintenance items"
+              subtitle="Most urgent first. Tap an item to log that service — past services are under History."
+              items={items}
+              bikeId={bike.id}
+            />
           </>
         )}
       </div>
