@@ -1,6 +1,7 @@
 import { Bike, LayoutDashboard, MapPin, Settings } from 'lucide-react'
 import { useEffect } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
+import { ThemeToggleButton } from '@/components/theme/ThemeToggleButton'
 import { registerBackButton } from '@/native/backButton'
 import { cn } from '@/lib/utils'
 
@@ -31,7 +32,8 @@ export function AppShell() {
       <header className="safe-top sticky top-0 z-10 border-b border-border bg-surface/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-3xl items-center gap-2 px-4">
           <Bike className="h-6 w-6 text-primary" aria-hidden />
-          <span className="font-semibold">Motorcycle System</span>
+          <span className="flex-1 font-semibold">Motorcycle System</span>
+          <ThemeToggleButton className="-mr-2" />
         </div>
       </header>
 
