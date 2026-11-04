@@ -1,6 +1,9 @@
 @import 'tailwindcss';
 
-/* Design tokens. Dark mode follows the phone/browser setting. */
+/*
+ * Design tokens. Theme = the user's choice in Settings (data-theme="light" | "dark"
+ * on <html>), or the phone/browser setting when no choice is stored ("System").
+ */
 @theme {
   --color-bg: #f6f7f9;
   --color-surface: #ffffff;
@@ -15,8 +18,13 @@
   --radius-card: 0.875rem;
 }
 
+:root {
+  color-scheme: light;
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
     --color-bg: #0b0f14;
     --color-surface: #151b23;
     --color-fg: #f3f4f6;
@@ -24,6 +32,16 @@
     --color-border: #263040;
     --color-primary: #f97316;
   }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg: #0b0f14;
+  --color-surface: #151b23;
+  --color-fg: #f3f4f6;
+  --color-muted: #9ca3af;
+  --color-border: #263040;
+  --color-primary: #f97316;
 }
 
 html,

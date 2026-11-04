@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { ThemeSelector } from '@/components/theme/ThemeSelector'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { API_BASE_URL, apiFetch } from '@/lib/api'
@@ -33,6 +34,12 @@ export function SettingsPage() {
         <Button variant="outline" className="mt-4" onClick={() => signOut()}>
           Sign out
         </Button>
+      </Card>
+
+      <Card className="mb-4">
+        <h2 className="font-semibold">Appearance</h2>
+        <p className="mt-1 mb-3 text-sm text-muted">"System" follows your phone's light/dark setting.</p>
+        <ThemeSelector />
       </Card>
 
       <Card>
