@@ -21,17 +21,23 @@ export interface BikeStatusInput {
   today?: Date
 }
 
-/** Starting point for items never serviced: the first odometer reading (when the bike was added). */
+/**
+ * Starting point for items never serviced: the odometer reading taken when the
+ * bike was added. Readings from back-dated services are ignored here, otherwise
+ * logging an old service would make never-serviced items look overdue.
+ */
 function baseline(input: BikeStatusInput): { date: Date; odometer: number } {
+  const addedAt = new Date(input.bike.created_at).getTime() - 60_000
   const first = input.readings
-    .filter((r) => r.motorcycle_id === input.bike.id)
+    .filter((r) => r.motorcycle_id === input.bike.id && new Date(r.recorded_at).getTime() >= addedAt)
     .reduce<BikeStatusInput['readings'][number] | null>(
       (min, r) => (min == null || r.recorded_at < min.recorded_at ? r : min),
       null,
     )
-  return first
-    ? { date: localDateOf(first.recorded_at), odometer: first.odometer }
-    : { date: localDateOf(input.bike.created_at), odometer: input.bike.current_odometer }
+  return {
+    date: localDateOf(input.bike.created_at),
+    odometer: first ? first.odometer : input.bike.current_odometer,
+  }
 }
 
 /** Due status of every active maintenance item of one bike, most urgent first. */

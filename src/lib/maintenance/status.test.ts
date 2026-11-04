@@ -67,6 +67,18 @@ describe('buildBikeStatus', () => {
     expect(countByStatus(items)).toEqual({ overdue: 0, dueSoon: 1, ok: 1 })
   })
 
+  it('ignores back-dated readings for the never-serviced baseline', () => {
+    const [coolant] = buildBikeStatus({
+      bike,
+      schedules: [schedule('coolant', 'Coolant', 20_000, 730)],
+      logs: [],
+      readings: [...readings, { motorcycle_id: 'bike', odometer: 2_000, recorded_at: '2025-01-01T12:00:00Z' }],
+      today,
+    })
+    expect(coolant.due.dueKm).toBe(30_000)
+    expect(coolant.due.dueDate?.toISOString().slice(0, 10)).toBe('2028-05-31')
+  })
+
   it('falls back to the bike creation date without readings', () => {
     const [item] = buildBikeStatus({ bike, schedules: [schedule('fluid', 'Brake fluid', null, 730)], logs: [], readings: [], today })
     expect(item.due.dueDate?.toISOString().slice(0, 10)).toBe('2028-05-31')
