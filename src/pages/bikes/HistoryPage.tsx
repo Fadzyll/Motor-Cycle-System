@@ -34,7 +34,7 @@ export function HistoryPage() {
   const spent = totalSpent(logs.data ?? [])
 
   return (
-    <>
+    <div className="max-w-2xl">
       <PageHeader title="Service history" subtitle={bike.data.nickname} backTo={`/bikes/${bikeId}`} />
 
       {visits.length === 0 ? (
@@ -115,6 +115,6 @@ export function HistoryPage() {
           </Button>
         </div>
       </Dialog>
-    </>
+    </div>
   )
 }

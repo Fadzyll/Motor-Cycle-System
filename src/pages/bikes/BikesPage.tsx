@@ -13,7 +13,7 @@ export function BikesPage() {
   const { data: bikes, isPending, error } = useBikes()
 
   return (
-    <>
+    <div className="max-w-2xl">
       <PageHeader
         title="My bikes"
         action={
@@ -43,6 +43,6 @@ export function BikesPage() {
           ))}
         </Card>
       )}
-    </>
+    </div>
   )
 }

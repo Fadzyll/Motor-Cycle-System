@@ -91,7 +91,7 @@ function ScheduleEditor({
   }
 
   return (
-    <>
+    <div className="max-w-2xl">
       <PageHeader
         title="Maintenance schedule"
         subtitle={`${bikeName} — service every X km or Y days, whichever comes first. Check your owner's manual.`}
@@ -160,7 +160,7 @@ function ScheduleEditor({
       </div>
 
       <AddCustomItemDialog bikeId={bikeId} open={addOpen} onClose={() => setAddOpen(false)} />
-    </>
+    </div>
   )
 }
 

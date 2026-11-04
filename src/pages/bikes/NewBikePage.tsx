@@ -9,7 +9,7 @@ export function NewBikePage() {
   const create = useCreateBike()
 
   return (
-    <>
+    <div className="max-w-2xl">
       <PageHeader
         title="Add motorcycle"
         subtitle="We'll set up a maintenance schedule with common intervals — you can adjust it to your owner's manual."
@@ -26,6 +26,6 @@ export function NewBikePage() {
           }
         />
       </Card>
-    </>
+    </div>
   )
 }

@@ -77,28 +77,39 @@ function LogServiceForm({ bike, items }: { bike: Motorcycle; items: StatusItem[]
     <>
       <PageHeader title="Log service" subtitle={bike.nickname} backTo={`/bikes/${bike.id}`} />
 
-      <form onSubmit={submit} noValidate className="space-y-4">
-        <Card className="grid grid-cols-2 gap-3">
-          <Field label="Date" htmlFor="performedAt" error={errors.performedAt}>
-            <Input
-              id="performedAt"
-              type="date"
-              max={toDateInputValue(localToday())}
-              value={values.performedAt}
-              onChange={(e) => set('performedAt', e.target.value)}
-            />
-          </Field>
-          <Field label="Odometer (km)" htmlFor="odometer" hint="Leave empty if the meter is broken" error={errors.odometer}>
-            <Input
-              id="odometer"
-              inputMode="numeric"
-              value={values.odometer}
-              onChange={(e) => set('odometer', e.target.value.replace(/[^\d]/g, ''))}
-            />
-          </Field>
-        </Card>
+      <form
+        onSubmit={submit}
+        noValidate
+        className="space-y-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-6 lg:space-y-0"
+      >
+        <div className="space-y-4 lg:col-start-2 lg:row-start-1">
+          <Card className="grid grid-cols-2 gap-3">
+            <Field label="Date" htmlFor="performedAt" error={errors.performedAt}>
+              <Input
+                id="performedAt"
+                type="date"
+                max={toDateInputValue(localToday())}
+                value={values.performedAt}
+                onChange={(e) => set('performedAt', e.target.value)}
+              />
+            </Field>
+            <Field
+              label="Odometer (km)"
+              htmlFor="odometer"
+              hint="Leave empty if the meter is broken"
+              error={errors.odometer}
+            >
+              <Input
+                id="odometer"
+                inputMode="numeric"
+                value={values.odometer}
+                onChange={(e) => set('odometer', e.target.value.replace(/[^\d]/g, ''))}
+              />
+            </Field>
+          </Card>
+        </div>
 
-        <Card className="p-0">
+        <Card className="p-0 lg:col-start-1 lg:row-start-1 lg:row-span-2">
           <div className="flex items-baseline justify-between px-4 pt-4">
             <h2 className="font-semibold">What was done?</h2>
             <span className="text-xs text-muted">{selectedCount} selected</span>
@@ -160,29 +171,31 @@ function LogServiceForm({ bike, items }: { bike: Motorcycle; items: StatusItem[]
           )}
         </Card>
 
-        <Card className="space-y-4">
-          <Field label="Workshop" htmlFor="workshopName" hint="Leave empty if you did it yourself.">
-            <Input
-              id="workshopName"
-              value={values.workshopName}
-              onChange={(e) => set('workshopName', e.target.value)}
-              autoComplete="off"
-            />
-          </Field>
-          <Field label="Notes" htmlFor="notes">
-            <Textarea
-              id="notes"
-              value={values.notes}
-              placeholder="e.g. Motul 7100 10W-40, 1.0 L"
-              onChange={(e) => set('notes', e.target.value)}
-            />
-          </Field>
-        </Card>
+        <div className="space-y-4 lg:col-start-2">
+          <Card className="space-y-4">
+            <Field label="Workshop" htmlFor="workshopName" hint="Leave empty if you did it yourself.">
+              <Input
+                id="workshopName"
+                value={values.workshopName}
+                onChange={(e) => set('workshopName', e.target.value)}
+                autoComplete="off"
+              />
+            </Field>
+            <Field label="Notes" htmlFor="notes">
+              <Textarea
+                id="notes"
+                value={values.notes}
+                placeholder="e.g. Motul 7100 10W-40, 1.0 L"
+                onChange={(e) => set('notes', e.target.value)}
+              />
+            </Field>
+          </Card>
 
-        <FormError error={logService.error} />
-        <Button type="submit" size="lg" className="w-full" disabled={logService.isPending}>
-          {logService.isPending ? 'Saving…' : `Save service${selectedCount > 1 ? ` (${selectedCount} items)` : ''}`}
-        </Button>
+          <FormError error={logService.error} />
+          <Button type="submit" size="lg" className="w-full" disabled={logService.isPending}>
+            {logService.isPending ? 'Saving…' : `Save service${selectedCount > 1 ? ` (${selectedCount} items)` : ''}`}
+          </Button>
+        </div>
       </form>
     </>
   )
