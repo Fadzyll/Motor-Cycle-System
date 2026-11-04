@@ -5,7 +5,10 @@ import { RequireAuth } from '@/components/layout/RequireAuth'
 import { AuthProvider } from '@/lib/auth/AuthProvider'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { DashboardPage } from '@/pages/DashboardPage'
-import { LoginPage } from '@/pages/LoginPage'
+import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
+import { LoginPage } from '@/pages/auth/LoginPage'
+import { RegisterPage } from '@/pages/auth/RegisterPage'
+import { VerifyPage } from '@/pages/auth/VerifyPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { SetupNeededPage } from '@/pages/SetupNeededPage'
@@ -32,6 +35,9 @@ export function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/verify" element={<VerifyPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route element={<RequireAuth />}>
               <Route element={<AppShell />}>
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
