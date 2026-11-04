@@ -2,6 +2,7 @@ import { Bike } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router'
 import { z } from 'zod'
+import { ThemeToggleButton } from '@/components/theme/ThemeToggleButton'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -61,7 +62,8 @@ export function LoginPage() {
   }
 
   return (
-    <div className="safe-top grid min-h-full place-items-center px-4 py-10">
+    <div className="safe-top relative grid min-h-full place-items-center px-4 py-10">
+      <ThemeToggleButton className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3" />
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-primary text-primary-fg">
