@@ -97,7 +97,7 @@ export function BikeDetailPage() {
               )}
             </div>
             <Button variant="outline" onClick={() => setOdoOpen(true)}>
-              {bike.current_odometer == null ? 'Set' : 'Update'}
+              + Add km
             </Button>
           </Card>
 

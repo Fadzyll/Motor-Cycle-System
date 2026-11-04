@@ -24,7 +24,7 @@ export function ThemeSelector() {
             aria-checked={selected}
             onClick={() => setPreference(value)}
             className={cn(
-              'flex h-10 items-center justify-center gap-2 rounded-lg text-sm font-medium transition-colors',
+              'flex h-10 items-center justify-center gap-2 rounded-lg text-sm font-medium transition',
               selected ? 'bg-surface text-fg shadow-sm' : 'text-muted hover:text-fg',
             )}
           >

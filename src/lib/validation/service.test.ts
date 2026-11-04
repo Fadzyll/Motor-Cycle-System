@@ -5,6 +5,7 @@ const today = new Date(Date.UTC(2026, 10, 4))
 const base: ServiceFormValues = {
   performedAt: '2026-11-04',
   odometer: '15230',
+  kmMode: 'reading',
   items: { oil: '45', filter: '' },
   workshopName: '  Bengkel Ali ',
   notes: '',
@@ -32,6 +33,13 @@ describe('validateService', () => {
     const r = validateService({ ...base, performedAt: '2026-11-05', odometer: 'abc', items: {} }, today)
     expect(r.ok).toBe(false)
     if (!r.ok) expect(Object.keys(r.errors).sort()).toEqual(['items', 'odometer', 'performedAt'])
+  })
+
+  it('works out the odometer from km ridden since the service', () => {
+    const r = validateService({ ...base, kmMode: 'since', odometer: '90' }, today, 90)
+    expect(r.ok && r.input.odometer).toBe(0)
+    const tooFar = validateService({ ...base, kmMode: 'since', odometer: '120' }, today, 90)
+    expect(tooFar.ok).toBe(false)
   })
 
   it('allows an empty odometer', () => {

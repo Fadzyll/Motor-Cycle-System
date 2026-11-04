@@ -18,6 +18,10 @@ export function dueSummary(item: StatusItem): string {
   if (daysLeft != null && dueDate && (!overdue || dateOver)) {
     parts.push(daysLeft > 0 ? `${formatDate(dueDate)} (${formatDaysFromNow(daysLeft)})` : `was due ${formatDate(dueDate)}`)
   }
-  if (parts.length === 0 && item.due.kmUnknown) return 'Needs an odometer reading'
+  if (item.due.kmUnknown) {
+    // Has a km interval but the last service (or the bike) has no km: say so instead of silently ignoring km.
+    if (parts.length === 0) return 'Needs an odometer reading'
+    parts.push(item.lastService && item.lastService.odometer == null ? 'km not counted (add km in History)' : 'km not counted')
+  }
   return parts.join(' · ') || 'No interval set'
 }

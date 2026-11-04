@@ -1,7 +1,8 @@
-import { ClipboardList, Trash2 } from 'lucide-react'
+import { ClipboardList, Pencil, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { EditVisitDialog } from '@/components/maintenance/EditVisitDialog'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog } from '@/components/ui/dialog'
@@ -9,7 +10,7 @@ import { ErrorState, FormError, LoadingState } from '@/components/ui/feedback'
 import { useBike, useCurrency, useDeleteLog, useLogs, useSchedules } from '@/lib/data/hooks'
 import type { MaintenanceLog } from '@/lib/data/types'
 import { formatDate, formatKm, formatMoney } from '@/lib/format'
-import { groupIntoVisits, totalSpent } from '@/lib/maintenance/history'
+import { groupIntoVisits, totalSpent, type ServiceVisit } from '@/lib/maintenance/history'
 
 export function HistoryPage() {
   const { bikeId = '' } = useParams()
@@ -19,6 +20,7 @@ export function HistoryPage() {
   const schedules = useSchedules(bikeId)
   const remove = useDeleteLog()
   const [toDelete, setToDelete] = useState<MaintenanceLog | null>(null)
+  const [toEdit, setToEdit] = useState<ServiceVisit | null>(null)
 
   const names = useMemo(
     () => new Map(schedules.data?.map((s) => [s.maintenance_type_id, s.maintenance_types.name])),
@@ -63,10 +65,23 @@ export function HistoryPage() {
                     <div>
                       <p className="font-semibold">{formatDate(visit.performedAt)}</p>
                       <p className="text-sm text-muted">
-                        {[visit.odometer != null && formatKm(visit.odometer), visit.workshopName].filter(Boolean).join(' · ')}
+                        {[visit.odometer != null && formatKm(visit.odometer), visit.workshopName]
+                          .filter(Boolean)
+                          .join(' · ')}
                       </p>
                     </div>
-                    {visit.total != null && <p className="font-semibold">{formatMoney(visit.total, currency)}</p>}
+                    <div className="flex items-center gap-1">
+                      {visit.total != null && <p className="font-semibold">{formatMoney(visit.total, currency)}</p>}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 text-muted"
+                        aria-label={`Edit service on ${formatDate(visit.performedAt)}`}
+                        onClick={() => setToEdit(visit)}
+                      >
+                        <Pencil className="h-4 w-4" aria-hidden />
+                      </Button>
+                    </div>
                   </div>
                   <ul className="divide-y divide-border border-t border-border">
                     {visit.logs.map((log) => (
@@ -97,8 +112,8 @@ export function HistoryPage() {
 
       <Dialog open={toDelete != null} onClose={() => setToDelete(null)} title="Delete this entry?">
         <p className="text-sm text-muted">
-          {toDelete && `${names.get(toDelete.maintenance_type_id) ?? 'Entry'} on ${formatDate(toDelete.performed_at)}`}
-          . The due date for this item will be recalculated.
+          {toDelete && `${names.get(toDelete.maintenance_type_id) ?? 'Entry'} on ${formatDate(toDelete.performed_at)}`}.
+          The due date for this item will be recalculated.
         </p>
         <FormError error={remove.error} />
         <div className="mt-5 flex gap-3">
@@ -115,6 +130,7 @@ export function HistoryPage() {
           </Button>
         </div>
       </Dialog>
+      {toEdit && <EditVisitDialog bike={bike.data} visit={toEdit} names={names} onClose={() => setToEdit(null)} />}
     </div>
   )
 }
