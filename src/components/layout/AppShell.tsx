@@ -1,6 +1,7 @@
 import { Bike, LayoutDashboard, MapPin, Settings } from 'lucide-react'
 import { useEffect } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
+import { SignOutButton } from '@/components/auth/SignOutButton'
 import { ThemeToggleButton } from '@/components/theme/ThemeToggleButton'
 import { useAuth } from '@/lib/auth/context'
 import { cn } from '@/lib/utils'
@@ -62,11 +63,12 @@ export function AppShell() {
             ))}
           </ul>
         </nav>
-        <div className="flex items-center gap-2 border-t border-border px-4 py-3">
+        <div className="flex items-center gap-1 border-t border-border py-3 pr-2 pl-4">
           <p className="min-w-0 flex-1 truncate text-xs text-muted" title={user?.email ?? undefined}>
             {user?.email}
           </p>
           <ThemeToggleButton />
+          <SignOutButton />
         </div>
       </aside>
 
@@ -75,7 +77,8 @@ export function AppShell() {
         <div className="mx-auto flex h-14 max-w-3xl items-center gap-2 px-4">
           <Bike className="h-6 w-6 text-primary" aria-hidden />
           <span className="flex-1 font-semibold">Motorcycle System</span>
-          <ThemeToggleButton className="-mr-2" />
+          <ThemeToggleButton />
+          <SignOutButton className="-mr-2" />
         </div>
       </header>
 
