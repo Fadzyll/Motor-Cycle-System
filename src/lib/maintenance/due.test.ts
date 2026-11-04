@@ -35,6 +35,12 @@ describe('computeDue', () => {
     expect(r.status).toBe('due_soon')
   })
 
+  it('shrinks the due-soon window for short intervals', () => {
+    const pressure = { intervalKm: null, intervalDays: 14, lastOdometer: 0, currentOdometer: 0, today }
+    expect(computeDue({ ...pressure, lastDate: '2026-11-04' }).status).toBe('ok') // 14 days left
+    expect(computeDue({ ...pressure, lastDate: '2026-10-25' }).status).toBe('due_soon') // 4 days left
+  })
+
   it('uses km per day to predict an earlier due date', () => {
     // 1,000 km left at 100 km/day = 10 days, sooner than the 116-day time limit.
     const r = computeDue({ ...oil, currentOdometer: 12_000, kmPerDay: 100, today })

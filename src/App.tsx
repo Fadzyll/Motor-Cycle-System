@@ -4,13 +4,19 @@ import { AppShell } from '@/components/layout/AppShell'
 import { RequireAuth } from '@/components/layout/RequireAuth'
 import { AuthProvider } from '@/lib/auth/AuthProvider'
 import { isSupabaseConfigured } from '@/lib/supabase'
-import { BikesPage } from '@/pages/BikesPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { SetupNeededPage } from '@/pages/SetupNeededPage'
 import { WorkshopsPage } from '@/pages/WorkshopsPage'
+import { BikeDetailPage } from '@/pages/bikes/BikeDetailPage'
+import { BikesPage } from '@/pages/bikes/BikesPage'
+import { EditBikePage } from '@/pages/bikes/EditBikePage'
+import { HistoryPage } from '@/pages/bikes/HistoryPage'
+import { LogServicePage } from '@/pages/bikes/LogServicePage'
+import { NewBikePage } from '@/pages/bikes/NewBikePage'
+import { SchedulePage } from '@/pages/bikes/SchedulePage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
@@ -30,6 +36,12 @@ export function App() {
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/bikes" element={<BikesPage />} />
+                <Route path="/bikes/new" element={<NewBikePage />} />
+                <Route path="/bikes/:bikeId" element={<BikeDetailPage />} />
+                <Route path="/bikes/:bikeId/edit" element={<EditBikePage />} />
+                <Route path="/bikes/:bikeId/service/new" element={<LogServicePage />} />
+                <Route path="/bikes/:bikeId/history" element={<HistoryPage />} />
+                <Route path="/bikes/:bikeId/schedule" element={<SchedulePage />} />
                 <Route path="/workshops" element={<WorkshopsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>

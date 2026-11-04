@@ -20,7 +20,11 @@ export interface DueInput {
   today?: Date
   /** "Due soon" when less than this share of the km interval is left. Default 10%. */
   soonKmRatio?: number
-  /** "Due soon" when this many days or fewer are left. Default 14. */
+  /**
+   * "Due soon" when this many days or fewer are left. Default 14, but never more
+   * than a quarter of the interval — otherwise a 14-day item (tyre pressure)
+   * would be "due soon" from the day it was done.
+   */
   soonDays?: number
 }
 
@@ -70,6 +74,8 @@ export function computeDue(input: DueInput): DueResult {
   const dueDate = hasDays ? addDays(lastDate, intervalDays) : null
   const daysLeft = dueDate ? daysBetween(today, dueDate) : null
 
+  const soonWindow = hasDays ? Math.min(soonDays, Math.ceil(intervalDays * 0.25)) : soonDays
+
   const kmAsDays =
     kmLeft != null && kmPerDay != null && kmPerDay > 0 ? Math.floor(kmLeft / kmPerDay) : null
   const candidates = [daysLeft, kmAsDays].filter((v): v is number => v != null)
@@ -82,7 +88,7 @@ export function computeDue(input: DueInput): DueResult {
     status = 'overdue'
   } else if (
     (kmLeft != null && intervalKm != null && kmLeft <= intervalKm * soonKmRatio) ||
-    (estimatedDaysLeft != null && estimatedDaysLeft <= soonDays)
+    (estimatedDaysLeft != null && estimatedDaysLeft <= soonWindow)
   ) {
     status = 'due_soon'
   } else {
