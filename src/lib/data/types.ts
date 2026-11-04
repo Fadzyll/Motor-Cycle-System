@@ -61,6 +61,17 @@ export interface OdometerReading {
   recorded_at: string
 }
 
+export interface Ride {
+  id: string
+  motorcycle_id: string
+  started_at: string
+  ended_at: string
+  distance_km: number
+  duration_s: number
+  max_speed_kmh: number | null
+  created_at: string
+}
+
 export interface Profile {
   id: string
   display_name: string | null

@@ -16,6 +16,7 @@ import { EditBikePage } from '@/pages/bikes/EditBikePage'
 import { HistoryPage } from '@/pages/bikes/HistoryPage'
 import { LogServicePage } from '@/pages/bikes/LogServicePage'
 import { NewBikePage } from '@/pages/bikes/NewBikePage'
+import { RidePage } from '@/pages/bikes/RidePage'
 import { SchedulePage } from '@/pages/bikes/SchedulePage'
 
 const queryClient = new QueryClient({
@@ -42,6 +43,7 @@ export function App() {
                 <Route path="/bikes/:bikeId/service/new" element={<LogServicePage />} />
                 <Route path="/bikes/:bikeId/history" element={<HistoryPage />} />
                 <Route path="/bikes/:bikeId/schedule" element={<SchedulePage />} />
+                <Route path="/bikes/:bikeId/ride" element={<RidePage />} />
                 <Route path="/workshops" element={<WorkshopsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>

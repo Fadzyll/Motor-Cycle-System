@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDaysFromNow, formatInterval, formatKm } from './format'
+import { formatDaysFromNow, formatDuration, formatInterval, formatKm, formatRideKm } from './format'
 
 describe('format', () => {
   it('formats relative days compactly', () => {
@@ -16,5 +16,12 @@ describe('format', () => {
     expect(formatInterval(3000, 180)).toBe('Every 3,000 km or 6 mo')
     expect(formatInterval(null, 730)).toBe('Every 2 yr')
     expect(formatInterval(null, null)).toBe('No interval set')
+  })
+
+  it('formats ride distance and time', () => {
+    expect(formatRideKm(0.348)).toBe('0.35 km')
+    expect(formatRideKm(12.44)).toBe('12.4 km')
+    expect(formatDuration(245)).toBe('4:05')
+    expect(formatDuration(3729)).toBe('1:02:09')
   })
 })

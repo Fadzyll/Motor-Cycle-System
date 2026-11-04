@@ -10,6 +10,7 @@ import type {
   Motorcycle,
   OdometerReading,
   Profile,
+  Ride,
   ScheduleWithType,
 } from './types'
 
@@ -225,4 +226,52 @@ export async function listReadings(bikeId?: string): Promise<OdometerReading[]> 
   const [a, b] = await Promise.all([recent, first])
   const rows = [...check<OdometerReading[]>(a), ...check<OdometerReading[]>(b)]
   return [...new Map(rows.map((r) => [r.id, r])).values()]
+}
+
+// ───────────────────────────── rides ───────────────────────────
+
+export async function listRides(bikeId: string, limit = 10): Promise<Ride[]> {
+  return check(
+    await supabase
+      .from('rides')
+      .select('*')
+      .eq('motorcycle_id', bikeId)
+      .order('started_at', { ascending: false })
+      .limit(limit),
+  )
+}
+
+export interface RideInput {
+  startedAt: string
+  endedAt: string
+  distanceKm: number
+  durationS: number
+  maxSpeedKmh: number | null
+}
+
+/**
+ * Saves a GPS ride and adds its distance to the bike's odometer.
+ * A bike without an odometer (broken meter) starts counting from 0 km at the ride start,
+ * so km-based items are tracked from then on.
+ */
+export async function saveRide(bike: Motorcycle, ride: RideInput): Promise<void> {
+  check(
+    await supabase.from('rides').insert({
+      motorcycle_id: bike.id,
+      started_at: ride.startedAt,
+      ended_at: ride.endedAt,
+      distance_km: Math.round(ride.distanceKm * 100) / 100,
+      duration_s: Math.round(ride.durationS),
+      max_speed_kmh: ride.maxSpeedKmh == null ? null : Math.round(ride.maxSpeedKmh * 10) / 10,
+    }),
+  )
+
+  const start = bike.current_odometer ?? 0
+  const end = start + Math.round(ride.distanceKm)
+  const readings = [{ motorcycle_id: bike.id, odometer: end, recorded_at: ride.endedAt }]
+  if (bike.current_odometer == null) readings.unshift({ motorcycle_id: bike.id, odometer: 0, recorded_at: ride.startedAt })
+  check(await supabase.from('odometer_readings').insert(readings))
+  if (end !== bike.current_odometer) {
+    check(await supabase.from('motorcycles').update({ current_odometer: end }).eq('id', bike.id))
+  }
 }

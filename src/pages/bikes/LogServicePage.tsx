@@ -84,7 +84,12 @@ function LogServiceForm({ bike, items }: { bike: Motorcycle; items: StatusItem[]
       >
         <div className="space-y-4 lg:col-start-2 lg:row-start-1">
           <Card className="grid grid-cols-2 gap-3">
-            <Field label="Date" htmlFor="performedAt" error={errors.performedAt}>
+            <Field
+              label="Date"
+              htmlFor="performedAt"
+              hint="Past services are fine — pick the day it was done"
+              error={errors.performedAt}
+            >
               <Input
                 id="performedAt"
                 type="date"
@@ -96,7 +101,7 @@ function LogServiceForm({ bike, items }: { bike: Motorcycle; items: StatusItem[]
             <Field
               label="Odometer (km)"
               htmlFor="odometer"
-              hint="Leave empty if the meter is broken"
+              hint="Km at that service (see the workshop sticker). Empty if unknown"
               error={errors.odometer}
             >
               <Input

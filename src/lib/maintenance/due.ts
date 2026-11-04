@@ -39,6 +39,11 @@ export interface DueResult {
   estimatedDaysLeft: number | null
   /** The item has a km interval but it can't be checked because an odometer reading is missing. */
   kmUnknown: boolean
+  /**
+   * How much of the service life is used up (0 = just serviced, 1 = due now, >1 = overdue):
+   * the larger of km used / km interval and days used / day interval. null without any interval.
+   */
+  usedRatio: number | null
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -100,7 +105,12 @@ export function computeDue(input: DueInput): DueResult {
     status = 'ok'
   }
 
-  return { status, dueKm, dueDate, kmLeft, daysLeft, estimatedDaysLeft, kmUnknown }
+  const ratios: number[] = []
+  if (hasKm && kmLeft != null) ratios.push((intervalKm! - kmLeft) / intervalKm!)
+  if (hasDays && daysLeft != null) ratios.push((intervalDays! - daysLeft) / intervalDays!)
+  const usedRatio = ratios.length ? Math.max(0, ...ratios) : null
+
+  return { status, dueKm, dueDate, kmLeft, daysLeft, estimatedDaysLeft, kmUnknown, usedRatio }
 }
 
 export interface OdometerReading {
