@@ -13,7 +13,7 @@ export function EditBikePage() {
   const { bikeId = '' } = useParams()
   const navigate = useNavigate()
   const { data: bike, isPending, error } = useBike(bikeId)
-  const update = useUpdateBike(bikeId)
+  const update = useUpdateBike(bike ?? undefined)
   const remove = useDeleteBike()
   const [confirmOpen, setConfirmOpen] = useState(false)
 

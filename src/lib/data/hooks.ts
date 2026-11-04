@@ -109,10 +109,13 @@ export function useCreateBike() {
   })
 }
 
-export function useUpdateBike(id: string) {
+export function useUpdateBike(bike: Motorcycle | undefined) {
   const invalidate = useInvalidateAll()
   return useMutation({
-    mutationFn: (input: Partial<api.BikeInput>) => api.updateBike(id, input),
+    mutationFn: (input: Partial<api.BikeInput>) => {
+      if (!bike) throw new Error('Motorcycle not loaded')
+      return api.updateBike(bike, input)
+    },
     onSuccess: invalidate,
   })
 }
@@ -164,6 +167,23 @@ export function useSaveRide() {
   const invalidate = useInvalidateAll()
   return useMutation({
     mutationFn: ({ bike, ride }: { bike: Motorcycle; ride: api.RideInput }) => api.saveRide(bike, ride),
+    onSuccess: invalidate,
+  })
+}
+
+export function useAddKmRidden() {
+  const invalidate = useInvalidateAll()
+  return useMutation({
+    mutationFn: ({ bike, km }: { bike: Motorcycle; km: number }) => api.addKmRidden(bike, km),
+    onSuccess: invalidate,
+  })
+}
+
+export function useUpdateVisit() {
+  const invalidate = useInvalidateAll()
+  return useMutation({
+    mutationFn: ({ bike, logIds, update }: { bike: Motorcycle; logIds: string[]; update: api.VisitUpdate }) =>
+      api.updateVisit(bike, logIds, update),
     onSuccess: invalidate,
   })
 }

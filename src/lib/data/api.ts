@@ -72,9 +72,40 @@ export async function createBike(input: BikeInput, opts: { isScooter: boolean })
   return bike
 }
 
-/** Edits bike details. Changing current_odometer here is a correction, so no reading is recorded. */
-export async function updateBike(id: string, input: Partial<BikeInput>): Promise<Motorcycle> {
-  return check(await supabase.from('motorcycles').update(input).eq('id', id).select().single())
+/**
+ * Km used by never-serviced items is counted from the bike's first odometer reading.
+ * If the odometer was set without one (e.g. through "Edit bike"), record the current
+ * value as the starting point before adding km — otherwise the added km wouldn't count.
+ */
+async function ensureStartReading(bike: Motorcycle): Promise<void> {
+  if (bike.current_odometer == null) return
+  const { count, error } = await supabase
+    .from('odometer_readings')
+    .select('id', { count: 'exact', head: true })
+    .eq('motorcycle_id', bike.id)
+  if (error) throw new Error(error.message)
+  if ((count ?? 0) > 0) return
+  check(
+    await supabase.from('odometer_readings').insert({
+      motorcycle_id: bike.id,
+      odometer: bike.current_odometer,
+      recorded_at: new Date(Date.now() - 2000).toISOString(),
+    }),
+  )
+}
+
+/** Edits bike details. A changed odometer is also recorded as a reading so km tracking follows it. */
+export async function updateBike(bike: Motorcycle, input: Partial<BikeInput>): Promise<Motorcycle> {
+  const odometerChanged =
+    input.current_odometer !== undefined &&
+    input.current_odometer != null &&
+    input.current_odometer !== bike.current_odometer
+  if (odometerChanged) await ensureStartReading(bike)
+  const updated = check<Motorcycle>(await supabase.from('motorcycles').update(input).eq('id', bike.id).select().single())
+  if (odometerChanged) {
+    check(await supabase.from('odometer_readings').insert({ motorcycle_id: bike.id, odometer: input.current_odometer }))
+  }
+  return updated
 }
 
 export async function deleteBike(id: string): Promise<void> {
@@ -86,8 +117,26 @@ export async function updateOdometer(bike: Motorcycle, odometer: number): Promis
   if (bike.current_odometer != null && odometer < bike.current_odometer) {
     throw new Error(`The new reading is lower than the current ${bike.current_odometer} km. Use "Edit bike" to correct a mistake.`)
   }
+  await ensureStartReading(bike)
   check(await supabase.from('odometer_readings').insert({ motorcycle_id: bike.id, odometer }))
   check(await supabase.from('motorcycles').update({ current_odometer: odometer }).eq('id', bike.id))
+}
+
+/**
+ * "I rode N km": adds to the odometer. A bike without one (broken meter) starts
+ * counting from 0, so km-based items are tracked from now on.
+ */
+export async function addKmRidden(bike: Motorcycle, km: number): Promise<void> {
+  if (!Number.isInteger(km) || km <= 0) throw new Error('Enter the km you rode')
+  await ensureStartReading(bike)
+  const now = Date.now()
+  const end = (bike.current_odometer ?? 0) + km
+  const readings = [{ motorcycle_id: bike.id, odometer: end, recorded_at: new Date(now).toISOString() }]
+  if (bike.current_odometer == null) {
+    readings.unshift({ motorcycle_id: bike.id, odometer: 0, recorded_at: new Date(now - 1000).toISOString() })
+  }
+  check(await supabase.from('odometer_readings').insert(readings))
+  check(await supabase.from('motorcycles').update({ current_odometer: end }).eq('id', bike.id))
 }
 
 // ───────────────────────── maintenance types ───────────────────
@@ -196,6 +245,7 @@ export async function logService(bike: Motorcycle, input: ServiceInput): Promise
     ),
   )
   if (input.odometer == null) return
+  await ensureStartReading(bike)
   check(
     await supabase.from('odometer_readings').insert({
       motorcycle_id: bike.id,
@@ -205,6 +255,38 @@ export async function logService(bike: Motorcycle, input: ServiceInput): Promise
   )
   if (bike.current_odometer == null || input.odometer > bike.current_odometer) {
     check(await supabase.from('motorcycles').update({ current_odometer: input.odometer }).eq('id', bike.id))
+  }
+}
+
+export interface VisitUpdate {
+  performedAt: string
+  odometer: number | null
+  workshopName: string | null
+  notes: string | null
+  /** log id → cost */
+  costs: Record<string, number | null>
+}
+
+/** Edits one service visit (all its item rows share date, km, workshop and notes). */
+export async function updateVisit(bike: Motorcycle, logIds: string[], update: VisitUpdate): Promise<void> {
+  const results = await Promise.all(
+    logIds.map((id) =>
+      supabase
+        .from('maintenance_logs')
+        .update({
+          performed_at: update.performedAt,
+          odometer: update.odometer,
+          workshop_name: update.workshopName,
+          notes: update.notes,
+          cost: update.costs[id] ?? null,
+        })
+        .eq('id', id),
+    ),
+  )
+  results.forEach(check)
+  if (update.odometer != null && (bike.current_odometer == null || update.odometer > bike.current_odometer)) {
+    check(await supabase.from('odometer_readings').insert({ motorcycle_id: bike.id, odometer: update.odometer }))
+    check(await supabase.from('motorcycles').update({ current_odometer: update.odometer }).eq('id', bike.id))
   }
 }
 
@@ -266,6 +348,7 @@ export async function saveRide(bike: Motorcycle, ride: RideInput): Promise<void>
     }),
   )
 
+  await ensureStartReading(bike)
   const start = bike.current_odometer ?? 0
   const end = start + Math.round(ride.distanceKm)
   const readings = [{ motorcycle_id: bike.id, odometer: end, recorded_at: ride.endedAt }]
