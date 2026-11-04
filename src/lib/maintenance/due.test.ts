@@ -35,6 +35,12 @@ describe('computeDue', () => {
     expect(r.status).toBe('due_soon')
   })
 
+  it('shrinks the due-soon window for short intervals', () => {
+    const pressure = { intervalKm: null, intervalDays: 14, lastOdometer: 0, currentOdometer: 0, today }
+    expect(computeDue({ ...pressure, lastDate: '2026-11-04' }).status).toBe('ok') // 14 days left
+    expect(computeDue({ ...pressure, lastDate: '2026-10-25' }).status).toBe('due_soon') // 4 days left
+  })
+
   it('uses km per day to predict an earlier due date', () => {
     // 1,000 km left at 100 km/day = 10 days, sooner than the 116-day time limit.
     const r = computeDue({ ...oil, currentOdometer: 12_000, kmPerDay: 100, today })
@@ -50,6 +56,24 @@ describe('computeDue', () => {
     const brakeFluid = computeDue({ ...oil, intervalKm: null, intervalDays: 730, currentOdometer: 50_000, today })
     expect(brakeFluid.kmLeft).toBeNull()
     expect(brakeFluid.status).toBe('ok')
+  })
+
+  it('falls back to the date limit when the odometer is unknown (broken meter)', () => {
+    const r = computeDue({ ...oil, currentOdometer: null, today })
+    expect(r.kmUnknown).toBe(true)
+    expect(r.kmLeft).toBeNull()
+    expect(r.daysLeft).toBe(116)
+    expect(r.status).toBe('ok')
+
+    const fromOldLog = computeDue({ ...oil, lastOdometer: null, currentOdometer: 15_000, today })
+    expect(fromOldLog.kmUnknown).toBe(true)
+    expect(fromOldLog.status).toBe('ok')
+  })
+
+  it('is unknown for a km-only item without an odometer', () => {
+    const r = computeDue({ ...oil, intervalDays: null, currentOdometer: null, today })
+    expect(r.status).toBe('unknown')
+    expect(r.kmUnknown).toBe(true)
   })
 
   it('is unknown without any interval', () => {

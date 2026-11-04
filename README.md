@@ -9,6 +9,16 @@ Track your motorcycle maintenance (engine oil, coolant, tyres, chain, brakes and
 
 See the full [Technical Plan](docs/TECHNICAL_PLAN.md).
 
+## Features so far
+
+- **Sign in** with a one-time code sent by email
+- **Motorcycles:** add, edit and delete bikes (scooters automatically track the CVT belt instead of the chain)
+- **Maintenance schedule:** 16 common items with default intervals, editable per bike (every X km or Y days, whichever comes first), plus your own custom items
+- **Log a service:** several items in one visit, with cost per item, workshop and notes
+- **Odometer updates**, used to predict when items will be due from how much you ride
+- **Dashboard:** what's overdue or due soon across all bikes
+- **Service history** per bike with the total spent
+
 ## Tech stack
 
 Vite + React + TypeScript · Tailwind CSS · React Router · TanStack Query · Supabase (Postgres, Auth, Storage) · Vercel Functions (`/api`) · Capacitor (Android) · Vitest · oxlint

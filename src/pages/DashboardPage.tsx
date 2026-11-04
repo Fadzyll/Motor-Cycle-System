@@ -1,28 +1,54 @@
-import { Bike, Plus } from 'lucide-react'
+import { CheckCircle2, Plus } from 'lucide-react'
+import { useNavigate } from 'react-router'
+import { BikeSummaryCard } from '@/components/bikes/BikeSummaryCard'
+import { EmptyBikes } from '@/components/bikes/EmptyBikes'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { useAuth } from '@/lib/auth/context'
+import { ErrorState, LoadingState } from '@/components/ui/feedback'
+import { useAllBikeStatus } from '@/lib/data/hooks'
 
 export function DashboardPage() {
-  const { user } = useAuth()
+  const navigate = useNavigate()
+  const { data, isPending, error } = useAllBikeStatus()
+
+  const attention = data?.reduce(
+    (n, b) => n + b.items.filter((i) => i.due.status === 'overdue' || i.due.status === 'due_soon').length,
+    0,
+  )
 
   return (
     <>
-      <PageHeader title="Dashboard" subtitle={`Signed in as ${user?.email ?? ''}`} />
+      <PageHeader
+        title="Dashboard"
+        action={
+          data && data.length > 0 ? (
+            <Button variant="outline" onClick={() => navigate('/bikes/new')} aria-label="Add motorcycle">
+              <Plus className="h-4 w-4" aria-hidden /> Bike
+            </Button>
+          ) : undefined
+        }
+      />
 
-      <Card className="flex flex-col items-center gap-3 py-10 text-center">
-        <Bike className="h-10 w-10 text-muted" aria-hidden />
-        <div>
-          <p className="font-medium">No motorcycles yet</p>
-          <p className="text-sm text-muted">
-            Add your bike to start tracking oil, coolant, tyres and more.
-          </p>
+      {isPending ? (
+        <LoadingState />
+      ) : error ? (
+        <ErrorState error={error} />
+      ) : !data || data.length === 0 ? (
+        <EmptyBikes />
+      ) : (
+        <div className="space-y-4">
+          {attention === 0 && (
+            <Card className="flex items-center gap-3 text-sm">
+              <CheckCircle2 className="h-5 w-5 shrink-0 text-ok" aria-hidden />
+              All good — nothing is due soon.
+            </Card>
+          )}
+          {data.map((b) => (
+            <BikeSummaryCard key={b.bike.id} data={b} />
+          ))}
         </div>
-        <Button disabled title="Coming in Phase 1">
-          <Plus className="h-4 w-4" aria-hidden /> Add motorcycle
-        </Button>
-      </Card>
+      )}
     </>
   )
 }
