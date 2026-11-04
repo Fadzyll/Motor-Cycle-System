@@ -41,7 +41,3 @@ export function LifeBar({
     </div>
   )
 }
-
-export function formatUsed(ratio: number | null): string {
-  return ratio == null ? '—' : `${Math.round(ratio * 100)}%`
-}

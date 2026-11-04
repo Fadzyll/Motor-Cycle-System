@@ -11,7 +11,7 @@ See the full [Technical Plan](docs/TECHNICAL_PLAN.md).
 
 ## Features so far
 
-- **Sign in** with a one-time code sent by email
+- **Accounts:** register with name, email and password → activate with a code sent by email → sign in with email + password (forgot-password reset by code)
 - **Motorcycles:** add, edit and delete bikes (scooters automatically track the CVT belt instead of the chain)
 - **Maintenance schedule:** 16 common items with default intervals, editable per bike (every X km or Y days, whichever comes first), plus your own custom items
 - **Log a service:** several items in one visit, with cost per item, workshop and notes
