@@ -109,10 +109,13 @@ export function useCreateBike() {
   })
 }
 
-export function useUpdateBike(id: string) {
+export function useUpdateBike(bike: Motorcycle | undefined) {
   const invalidate = useInvalidateAll()
   return useMutation({
-    mutationFn: (input: Partial<api.BikeInput>) => api.updateBike(id, input),
+    mutationFn: (input: Partial<api.BikeInput>) => {
+      if (!bike) throw new Error('Motorcycle not loaded')
+      return api.updateBike(bike, input)
+    },
     onSuccess: invalidate,
   })
 }
