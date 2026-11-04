@@ -1,4 +1,4 @@
-import { CalendarClock, Gauge, History, Navigation, Pencil, Plus, SlidersHorizontal } from 'lucide-react'
+import { CalendarClock, Gauge, History, Lightbulb, Navigation, Pencil, Plus, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { OdometerDialog } from '@/components/bikes/OdometerDialog'
@@ -126,6 +126,25 @@ export function BikeDetailPage() {
               <SlidersHorizontal className="h-4 w-4" aria-hidden /> Maintenance schedule
             </Link>
           </div>
+
+          {!lastService && items.length > 0 && (
+            <Card className="mt-4 flex items-start gap-3 border-primary/40 bg-primary/5 text-sm">
+              <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+              <div>
+                <p className="font-medium">Serviced before you added this bike?</p>
+                <p className="mt-1 text-muted">
+                  Log your recent services with the <strong className="text-fg">date they were done</strong> (and the km
+                  at the time, if you know it). The bars and due dates then start from that service instead of today.
+                </p>
+                <Link
+                  to={`/bikes/${bike.id}/service/new`}
+                  className="mt-2 inline-block font-medium text-primary underline"
+                >
+                  Log a past service
+                </Link>
+              </div>
+            </Card>
+          )}
         </div>
 
         <div className="mt-6 lg:mt-0">
