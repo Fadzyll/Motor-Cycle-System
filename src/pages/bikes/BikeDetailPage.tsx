@@ -1,9 +1,10 @@
-import { CalendarClock, Gauge, History, Pencil, Plus, SlidersHorizontal } from 'lucide-react'
+import { CalendarClock, Gauge, History, Navigation, Pencil, Plus, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { OdometerDialog } from '@/components/bikes/OdometerDialog'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { DueItemRow } from '@/components/maintenance/DueItemRow'
+import { ServiceLifeChart } from '@/components/maintenance/ServiceLifeChart'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ErrorState, LoadingState } from '@/components/ui/feedback'
@@ -18,10 +19,15 @@ function Section({ title, items, bikeId }: { title: string; items: StatusItem[];
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted">
         {title} ({items.length})
       </h2>
-      <Card className="divide-y divide-border overflow-hidden p-0">
-        {items.map((item) => (
-          <DueItemRow key={item.scheduleId} item={item} bikeId={bikeId} />
-        ))}
+      <Card className="overflow-hidden p-0">
+        {/* -mb-px hides the last row's bottom border inside the card */}
+        <div className="-mb-px grid grid-cols-1 lg:grid-cols-2">
+          {items.map((item) => (
+            <div key={item.scheduleId} className="border-b border-border lg:odd:border-r">
+              <DueItemRow item={item} bikeId={bikeId} />
+            </div>
+          ))}
+        </div>
       </Card>
     </section>
   )
@@ -60,7 +66,7 @@ export function BikeDetailPage() {
       />
 
       <div className="lg:grid lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-start lg:gap-8">
-        <div className="lg:sticky lg:top-10">
+        <div>
           <Card className="flex items-center gap-4">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
               <Gauge className="h-6 w-6" aria-hidden />
@@ -90,6 +96,14 @@ export function BikeDetailPage() {
             <Button size="lg" className="col-span-3" onClick={() => navigate(`/bikes/${bike.id}/service/new`)}>
               <Plus className="h-5 w-5" aria-hidden /> Log service
             </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="col-span-3"
+              onClick={() => navigate(`/bikes/${bike.id}/ride`)}
+            >
+              <Navigation className="h-5 w-5 text-primary" aria-hidden /> Start ride (GPS)
+            </Button>
             <Link
               to={`/bikes/${bike.id}/history`}
               className="flex h-11 items-center justify-center gap-2 rounded-xl border border-border bg-surface text-sm font-medium hover:bg-bg col-span-1"
@@ -105,20 +119,24 @@ export function BikeDetailPage() {
           </div>
         </div>
 
-        <div className="mt-6 space-y-6 lg:mt-0">
-          {items.length === 0 ? (
-            <Card className="text-sm text-muted">
-              No maintenance items are switched on. Open <strong>Maintenance schedule</strong> to choose what to track.
-            </Card>
-          ) : (
-            <>
-              <Section title="Needs attention" items={attention} bikeId={bike.id} />
-              <Section title="OK" items={ok} bikeId={bike.id} />
-              <Section title="Can't calculate" items={other} bikeId={bike.id} />
-              <p className="text-center text-xs text-muted">Tap an item to log that service.</p>
-            </>
-          )}
+        <div className="mt-6 lg:mt-0">
+          <ServiceLifeChart items={items} bikeId={bike.id} />
         </div>
+      </div>
+
+      <div className="mt-8 space-y-6">
+        {items.length === 0 ? (
+          <Card className="text-sm text-muted">
+            No maintenance items are switched on. Open <strong>Maintenance schedule</strong> to choose what to track.
+          </Card>
+        ) : (
+          <>
+            <Section title="Needs attention" items={attention} bikeId={bike.id} />
+            <Section title="OK" items={ok} bikeId={bike.id} />
+            <Section title="Can't calculate" items={other} bikeId={bike.id} />
+            <p className="text-center text-xs text-muted">Tap an item to log that service.</p>
+          </>
+        )}
       </div>
 
       <OdometerDialog bike={bike} open={odoOpen} onClose={() => setOdoOpen(false)} />

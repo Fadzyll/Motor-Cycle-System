@@ -55,3 +55,17 @@ export function bikeSubtitle(bike: {
 }): string {
   return [bike.make, bike.model, bike.year, bike.plate_number].filter(Boolean).join(' · ')
 }
+
+/** Ride distance: "0.35 km", "12.4 km". */
+export function formatRideKm(km: number): string {
+  return `${km < 10 ? km.toFixed(2) : km.toFixed(1)} km`
+}
+
+/** Ride time: "4:05", "1:02:09". */
+export function formatDuration(totalSeconds: number): string {
+  const s = Math.floor(totalSeconds % 60)
+  const m = Math.floor((totalSeconds / 60) % 60)
+  const h = Math.floor(totalSeconds / 3600)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`
+}

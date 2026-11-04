@@ -15,6 +15,19 @@ describe('computeDue', () => {
     expect(r.daysLeft).toBe(116)
   })
 
+  it('reports how much of the service life is used', () => {
+    // 1,000 of 3,000 km (33%) and 64 of 180 days (36%) → the larger wins
+    const r = computeDue({ ...oil, currentOdometer: 11_000, today })
+    expect(r.usedRatio).toBeCloseTo(64 / 180)
+    // 2,700 of 3,000 km = 90%
+    expect(computeDue({ ...oil, currentOdometer: 12_700, today }).usedRatio).toBeCloseTo(0.9)
+    // overdue goes above 1
+    expect(computeDue({ ...oil, currentOdometer: 13_600, today }).usedRatio).toBeCloseTo(1.2)
+    // time only when the odometer is unknown
+    expect(computeDue({ ...oil, currentOdometer: null, today }).usedRatio).toBeCloseTo(64 / 180)
+    expect(computeDue({ ...oil, intervalKm: null, intervalDays: null, currentOdometer: 0, today }).usedRatio).toBeNull()
+  })
+
   it('is overdue when the km limit is passed', () => {
     expect(computeDue({ ...oil, currentOdometer: 13_050, today }).status).toBe('overdue')
   })

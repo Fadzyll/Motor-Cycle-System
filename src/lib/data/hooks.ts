@@ -11,6 +11,7 @@ export const keys = {
   schedules: (bikeId?: string) => ['schedules', bikeId ?? 'all'] as const,
   logs: (bikeId?: string) => ['logs', bikeId ?? 'all'] as const,
   readings: (bikeId?: string) => ['readings', bikeId ?? 'all'] as const,
+  rides: (bikeId: string) => ['rides', bikeId] as const,
 }
 
 export function useProfile() {
@@ -95,7 +96,7 @@ function useInvalidateAll() {
   const qc = useQueryClient()
   return () =>
     Promise.all(
-      [keys.bikes, ['schedules'], ['logs'], ['readings']].map((queryKey) => qc.invalidateQueries({ queryKey })),
+      [keys.bikes, ['schedules'], ['logs'], ['readings'], ['rides']].map((queryKey) => qc.invalidateQueries({ queryKey })),
     )
 }
 
@@ -151,6 +152,18 @@ export function useAddCustomItem(bikeId: string) {
   const invalidate = useInvalidateAll()
   return useMutation({
     mutationFn: (item: Parameters<typeof api.addCustomItem>[1]) => api.addCustomItem(bikeId, item),
+    onSuccess: invalidate,
+  })
+}
+
+export function useRides(bikeId: string) {
+  return useQuery({ queryKey: keys.rides(bikeId), queryFn: () => api.listRides(bikeId) })
+}
+
+export function useSaveRide() {
+  const invalidate = useInvalidateAll()
+  return useMutation({
+    mutationFn: ({ bike, ride }: { bike: Motorcycle; ride: api.RideInput }) => api.saveRide(bike, ride),
     onSuccess: invalidate,
   })
 }

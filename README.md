@@ -17,6 +17,9 @@ See the full [Technical Plan](docs/TECHNICAL_PLAN.md).
 - **Log a service:** several items in one visit, with cost per item, workshop and notes
 - **Odometer updates**, used to predict when items will be due from how much you ride
 - **Dashboard:** what's overdue or due soon across all bikes
+- **Service life bars:** each item shows how much of its interval is used since the last service (fills as you ride and as time passes)
+- **GPS ride tracking:** measure a ride with the phone's location and add the km to the odometer — also works for bikes with a broken meter. Only distance and time are saved, never the route.
+- **Light / dark mode** and a **desktop layout** for laptops
 - **Service history** per bike with the total spent
 
 ## Tech stack

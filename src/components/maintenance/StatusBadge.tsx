@@ -11,9 +11,14 @@ const styles: Record<DueStatus, { label: string; className: string }> = {
 export function StatusBadge({ status, className }: { status: DueStatus; className?: string }) {
   const s = styles[status]
   return (
-    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold', s.className, className)}>
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold',
+        s.className,
+        className,
+      )}
+    >
       {s.label}
     </span>
   )
 }
-
