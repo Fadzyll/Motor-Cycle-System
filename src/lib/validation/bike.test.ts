@@ -23,6 +23,11 @@ describe('bikeFormSchema', () => {
     })
   })
 
+  it('allows an empty odometer (broken meter)', () => {
+    const parsed = bikeFormSchema.parse({ ...toFormValues(), nickname: 'Old bike' })
+    expect(parsed.current_odometer).toBeNull()
+  })
+
   it('rejects missing name, bad odometer and bad year', () => {
     const r = bikeFormSchema.safeParse({ ...toFormValues(), current_odometer: '-5', year: '1800' })
     expect(r.success).toBe(false)

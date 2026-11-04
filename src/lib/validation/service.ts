@@ -28,9 +28,10 @@ export function validateService(
   if (!/^\d{4}-\d{2}-\d{2}$/.test(values.performedAt)) errors.performedAt = 'Pick the service date'
   else if (values.performedAt > toDateInputValue(today)) errors.performedAt = 'The date cannot be in the future'
 
+  // Optional: empty when the meter is broken.
   const odoText = values.odometer.trim()
-  const odometer = Number(odoText)
-  if (!odoText || !Number.isInteger(odometer) || odometer < 0) errors.odometer = 'Enter the odometer in whole km'
+  const odometer = odoText === '' ? null : Number(odoText)
+  if (odometer != null && (!Number.isInteger(odometer) || odometer < 0)) errors.odometer = 'Enter the odometer in whole km'
 
   const entries = Object.entries(values.items)
   if (entries.length === 0) errors.items = 'Tick at least one item you had done'

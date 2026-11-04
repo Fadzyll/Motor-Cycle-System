@@ -4,6 +4,11 @@ export function formatKm(km: number): string {
   return `${Math.round(km).toLocaleString(LOCALE)} km`
 }
 
+/** Odometer for display; null means the meter is broken / not set. */
+export function formatOdometer(km: number | null): string {
+  return km == null ? 'Odometer not set' : formatKm(km)
+}
+
 /** Formats a midnight-UTC calendar date. */
 export function formatDate(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date.length === 10 ? `${date}T00:00:00Z` : date) : date

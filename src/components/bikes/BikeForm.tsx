@@ -71,15 +71,15 @@ export function BikeForm({
       </Field>
 
       <Field
-        label="Current odometer (km) *"
+        label="Current odometer (km)"
         htmlFor="current_odometer"
-        hint="The number on your meter right now."
+        hint="Optional. Leave empty if your meter is broken — the bike will be tracked by date only, and you can add the reading later."
         error={errors.current_odometer}
       >
         <Input {...bind('current_odometer')} inputMode="numeric" placeholder="15230" />
       </Field>
 
-      <Field label="Purchase date" htmlFor="purchase_date" error={errors.purchase_date}>
+      <Field label="Purchase date" htmlFor="purchase_date" hint="Optional." error={errors.purchase_date}>
         <Input {...bind('purchase_date')} type="date" />
       </Field>
 

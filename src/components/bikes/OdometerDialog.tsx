@@ -31,19 +31,23 @@ export function OdometerDialog({ bike, open, onClose }: { bike: Motorcycle; open
   }
 
   return (
-    <Dialog open={open} onClose={onClose} title="Update odometer">
+    <Dialog open={open} onClose={onClose} title={bike.current_odometer == null ? 'Set odometer' : 'Update odometer'}>
       <form onSubmit={submit} noValidate className="space-y-4">
         <Field
           label="Odometer now (km)"
           htmlFor="odometer-now"
-          hint={`Last reading: ${formatKm(bike.current_odometer)}`}
+          hint={
+            bike.current_odometer == null
+              ? 'Enter what your meter shows. Items with a km interval will start being tracked.'
+              : `Last reading: ${formatKm(bike.current_odometer)}`
+          }
           error={error ?? undefined}
         >
           <Input
             id="odometer-now"
             inputMode="numeric"
             autoFocus
-            placeholder={String(bike.current_odometer)}
+            placeholder={bike.current_odometer == null ? 'e.g. 15230' : String(bike.current_odometer)}
             value={value}
             onChange={(e) => setValue(e.target.value.replace(/[^\d]/g, ''))}
           />

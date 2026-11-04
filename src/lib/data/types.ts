@@ -10,7 +10,8 @@ export interface Motorcycle {
   engine_cc: number | null
   plate_number: string | null
   vin: string | null
-  current_odometer: number
+  /** null = unknown (e.g. broken meter): tracked by date only. */
+  current_odometer: number | null
   purchase_date: string | null
   photo_url: string | null
   created_at: string
@@ -44,7 +45,7 @@ export interface MaintenanceLog {
   motorcycle_id: string
   maintenance_type_id: string
   performed_at: string // YYYY-MM-DD
-  odometer: number
+  odometer: number | null
   cost: number | null
   workshop_name: string | null
   google_place_id: string | null

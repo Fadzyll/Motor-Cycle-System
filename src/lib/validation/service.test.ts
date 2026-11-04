@@ -34,6 +34,11 @@ describe('validateService', () => {
     if (!r.ok) expect(Object.keys(r.errors).sort()).toEqual(['items', 'odometer', 'performedAt'])
   })
 
+  it('allows an empty odometer', () => {
+    const r = validateService({ ...base, odometer: '' }, today)
+    expect(r.ok && r.input.odometer).toBeNull()
+  })
+
   it('rejects bad costs', () => {
     const r = validateService({ ...base, items: { oil: '4.555' } }, today)
     expect(r.ok).toBe(false)

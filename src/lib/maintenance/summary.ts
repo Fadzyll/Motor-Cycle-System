@@ -18,5 +18,6 @@ export function dueSummary(item: StatusItem): string {
   if (daysLeft != null && dueDate && (!overdue || dateOver)) {
     parts.push(daysLeft > 0 ? `${formatDate(dueDate)} (${formatDaysFromNow(daysLeft)})` : `was due ${formatDate(dueDate)}`)
   }
+  if (parts.length === 0 && item.due.kmUnknown) return 'Needs an odometer reading'
   return parts.join(' · ') || 'No interval set'
 }

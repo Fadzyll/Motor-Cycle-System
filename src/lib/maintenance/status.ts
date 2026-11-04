@@ -9,7 +9,7 @@ export interface StatusItem {
   icon: string | null
   intervalKm: number | null
   intervalDays: number | null
-  lastService: { performedAt: string; odometer: number } | null
+  lastService: { performedAt: string; odometer: number | null } | null
   due: DueResult
 }
 
@@ -26,7 +26,7 @@ export interface BikeStatusInput {
  * bike was added. Readings from back-dated services are ignored here, otherwise
  * logging an old service would make never-serviced items look overdue.
  */
-function baseline(input: BikeStatusInput): { date: Date; odometer: number } {
+function baseline(input: BikeStatusInput): { date: Date; odometer: number | null } {
   const addedAt = new Date(input.bike.created_at).getTime() - 60_000
   const first = input.readings
     .filter((r) => r.motorcycle_id === input.bike.id && new Date(r.recorded_at).getTime() >= addedAt)
@@ -59,7 +59,7 @@ export function buildBikeStatus(input: BikeStatusInput): StatusItem[] {
     if (
       !prev ||
       log.performed_at > prev.performed_at ||
-      (log.performed_at === prev.performed_at && log.odometer > prev.odometer)
+      (log.performed_at === prev.performed_at && (log.odometer ?? -1) > (prev.odometer ?? -1))
     ) {
       latest.set(log.maintenance_type_id, log)
     }

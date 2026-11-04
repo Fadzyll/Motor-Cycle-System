@@ -56,11 +56,13 @@ export async function createBike(input: BikeInput, opts: { isScooter: boolean })
         })),
       ),
     )
-    check(
-      await supabase
-        .from('odometer_readings')
-        .insert({ motorcycle_id: bike.id, odometer: bike.current_odometer }),
-    )
+    if (bike.current_odometer != null) {
+      check(
+        await supabase
+          .from('odometer_readings')
+          .insert({ motorcycle_id: bike.id, odometer: bike.current_odometer }),
+      )
+    }
   } catch (err) {
     // Don't leave a half-created bike behind.
     await supabase.from('motorcycles').delete().eq('id', bike.id)
@@ -80,7 +82,7 @@ export async function deleteBike(id: string): Promise<void> {
 
 /** Records a new odometer reading (used for the km/day estimate) and updates the bike. */
 export async function updateOdometer(bike: Motorcycle, odometer: number): Promise<void> {
-  if (odometer < bike.current_odometer) {
+  if (bike.current_odometer != null && odometer < bike.current_odometer) {
     throw new Error(`The new reading is lower than the current ${bike.current_odometer} km. Use "Edit bike" to correct a mistake.`)
   }
   check(await supabase.from('odometer_readings').insert({ motorcycle_id: bike.id, odometer }))
@@ -169,7 +171,8 @@ export async function listLogs(bikeId?: string): Promise<MaintenanceLog[]> {
 
 export interface ServiceInput {
   performedAt: string // YYYY-MM-DD
-  odometer: number
+  /** null = meter broken / unknown. */
+  odometer: number | null
   items: { typeId: string; cost: number | null }[]
   workshopName: string | null
   notes: string | null
@@ -191,6 +194,7 @@ export async function logService(bike: Motorcycle, input: ServiceInput): Promise
       })),
     ),
   )
+  if (input.odometer == null) return
   check(
     await supabase.from('odometer_readings').insert({
       motorcycle_id: bike.id,
@@ -198,7 +202,7 @@ export async function logService(bike: Motorcycle, input: ServiceInput): Promise
       recorded_at: `${input.performedAt}T12:00:00Z`,
     }),
   )
-  if (input.odometer > bike.current_odometer) {
+  if (bike.current_odometer == null || input.odometer > bike.current_odometer) {
     check(await supabase.from('motorcycles').update({ current_odometer: input.odometer }).eq('id', bike.id))
   }
 }

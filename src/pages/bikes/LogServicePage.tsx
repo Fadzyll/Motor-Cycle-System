@@ -37,7 +37,7 @@ function LogServiceForm({ bike, items }: { bike: Motorcycle; items: StatusItem[]
   const preselected = params.get('item')
   const [values, setValues] = useState<ServiceFormValues>(() => ({
     performedAt: toDateInputValue(localToday()),
-    odometer: String(bike.current_odometer),
+    odometer: bike.current_odometer == null ? '' : String(bike.current_odometer),
     items: preselected && items.some((i) => i.typeId === preselected) ? { [preselected]: '' } : {},
     workshopName: '',
     notes: '',
@@ -88,7 +88,7 @@ function LogServiceForm({ bike, items }: { bike: Motorcycle; items: StatusItem[]
               onChange={(e) => set('performedAt', e.target.value)}
             />
           </Field>
-          <Field label="Odometer (km)" htmlFor="odometer" error={errors.odometer}>
+          <Field label="Odometer (km)" htmlFor="odometer" hint="Leave empty if the meter is broken" error={errors.odometer}>
             <Input
               id="odometer"
               inputMode="numeric"

@@ -65,7 +65,14 @@ export function BikeDetailPage() {
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-xs text-muted">Odometer</p>
-          <p className="text-xl font-bold">{formatKm(bike.current_odometer)}</p>
+          {bike.current_odometer == null ? (
+            <>
+              <p className="text-xl font-bold">Not set</p>
+              <p className="text-xs text-muted">Tracking by date only</p>
+            </>
+          ) : (
+            <p className="text-xl font-bold">{formatKm(bike.current_odometer)}</p>
+          )}
           {lastService && (
             <p className="flex items-center gap-1 text-xs text-muted">
               <CalendarClock className="h-3.5 w-3.5" aria-hidden /> Last service {formatDate(lastService)}
@@ -73,7 +80,7 @@ export function BikeDetailPage() {
           )}
         </div>
         <Button variant="outline" onClick={() => setOdoOpen(true)}>
-          Update
+          {bike.current_odometer == null ? 'Set' : 'Update'}
         </Button>
       </Card>
 
@@ -103,7 +110,7 @@ export function BikeDetailPage() {
         <>
           <Section title="Needs attention" items={attention} bikeId={bike.id} />
           <Section title="OK" items={ok} bikeId={bike.id} />
-          <Section title="No interval set" items={other} bikeId={bike.id} />
+          <Section title="Can't calculate" items={other} bikeId={bike.id} />
           <p className="mt-4 text-center text-xs text-muted">Tap an item to log that service.</p>
         </>
       )}

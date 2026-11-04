@@ -5,7 +5,7 @@ const styles: Record<DueStatus, { label: string; className: string }> = {
   overdue: { label: 'Overdue', className: 'bg-danger/15 text-danger' },
   due_soon: { label: 'Due soon', className: 'bg-warn/15 text-warn' },
   ok: { label: 'OK', className: 'bg-ok/15 text-ok' },
-  unknown: { label: 'No interval', className: 'bg-border text-muted' },
+  unknown: { label: 'Unknown', className: 'bg-border text-muted' },
 }
 
 export function StatusBadge({ status, className }: { status: DueStatus; className?: string }) {

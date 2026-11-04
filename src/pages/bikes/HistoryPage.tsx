@@ -63,7 +63,7 @@ export function HistoryPage() {
                     <div>
                       <p className="font-semibold">{formatDate(visit.performedAt)}</p>
                       <p className="text-sm text-muted">
-                        {[formatKm(visit.odometer), visit.workshopName].filter(Boolean).join(' · ')}
+                        {[visit.odometer != null && formatKm(visit.odometer), visit.workshopName].filter(Boolean).join(' · ')}
                       </p>
                     </div>
                     {visit.total != null && <p className="font-semibold">{formatMoney(visit.total, currency)}</p>}

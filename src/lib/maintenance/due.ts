@@ -10,11 +10,12 @@ export interface DueInput {
   intervalKm: number | null
   /** Service every N days (null = not time based). */
   intervalDays: number | null
-  /** Odometer (km) at the last service, or the bike's starting odometer. */
-  lastOdometer: number
+  /** Odometer (km) at the last service, or the bike's starting odometer. null = unknown. */
+  lastOdometer: number | null
   /** Date of the last service, or the bike's purchase / added date. */
   lastDate: Date | string
-  currentOdometer: number
+  /** null = unknown (broken meter) — the km limit is then skipped. */
+  currentOdometer: number | null
   /** Average riding distance, used to turn km left into an estimated date. */
   kmPerDay?: number | null
   today?: Date
@@ -36,6 +37,8 @@ export interface DueResult {
   daysLeft: number | null
   /** Earliest of the time limit and the km limit converted to days (if km/day is known). */
   estimatedDaysLeft: number | null
+  /** The item has a km interval but it can't be checked because an odometer reading is missing. */
+  kmUnknown: boolean
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -66,11 +69,13 @@ export function computeDue(input: DueInput): DueResult {
   } = input
   const lastDate = typeof input.lastDate === 'string' ? new Date(input.lastDate) : input.lastDate
 
-  const hasKm = intervalKm != null && intervalKm > 0
+  const wantsKm = intervalKm != null && intervalKm > 0
+  const kmUnknown = wantsKm && (lastOdometer == null || currentOdometer == null)
+  const hasKm = wantsKm && !kmUnknown
   const hasDays = intervalDays != null && intervalDays > 0
 
-  const dueKm = hasKm ? lastOdometer + intervalKm : null
-  const kmLeft = dueKm != null ? dueKm - currentOdometer : null
+  const dueKm = hasKm ? lastOdometer! + intervalKm! : null
+  const kmLeft = dueKm != null ? dueKm - currentOdometer! : null
   const dueDate = hasDays ? addDays(lastDate, intervalDays) : null
   const daysLeft = dueDate ? daysBetween(today, dueDate) : null
 
@@ -95,7 +100,7 @@ export function computeDue(input: DueInput): DueResult {
     status = 'ok'
   }
 
-  return { status, dueKm, dueDate, kmLeft, daysLeft, estimatedDaysLeft }
+  return { status, dueKm, dueDate, kmLeft, daysLeft, estimatedDaysLeft, kmUnknown }
 }
 
 export interface OdometerReading {

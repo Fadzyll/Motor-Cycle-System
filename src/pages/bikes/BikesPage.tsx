@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ErrorState, LoadingState } from '@/components/ui/feedback'
 import { useBikes } from '@/lib/data/hooks'
-import { bikeSubtitle, formatKm } from '@/lib/format'
+import { bikeSubtitle, formatOdometer } from '@/lib/format'
 
 export function BikesPage() {
   const navigate = useNavigate()
@@ -35,7 +35,7 @@ export function BikesPage() {
               <div className="min-w-0 flex-1">
                 <p className="truncate font-semibold">{bike.nickname}</p>
                 <p className="truncate text-sm text-muted">
-                  {[bikeSubtitle(bike), formatKm(bike.current_odometer)].filter(Boolean).join(' · ')}
+                  {[bikeSubtitle(bike), formatOdometer(bike.current_odometer)].filter(Boolean).join(' · ')}
                 </p>
               </div>
               <ChevronRight className="h-5 w-5 text-muted" aria-hidden />

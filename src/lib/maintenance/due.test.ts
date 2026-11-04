@@ -58,6 +58,24 @@ describe('computeDue', () => {
     expect(brakeFluid.status).toBe('ok')
   })
 
+  it('falls back to the date limit when the odometer is unknown (broken meter)', () => {
+    const r = computeDue({ ...oil, currentOdometer: null, today })
+    expect(r.kmUnknown).toBe(true)
+    expect(r.kmLeft).toBeNull()
+    expect(r.daysLeft).toBe(116)
+    expect(r.status).toBe('ok')
+
+    const fromOldLog = computeDue({ ...oil, lastOdometer: null, currentOdometer: 15_000, today })
+    expect(fromOldLog.kmUnknown).toBe(true)
+    expect(fromOldLog.status).toBe('ok')
+  })
+
+  it('is unknown for a km-only item without an odometer', () => {
+    const r = computeDue({ ...oil, intervalDays: null, currentOdometer: null, today })
+    expect(r.status).toBe('unknown')
+    expect(r.kmUnknown).toBe(true)
+  })
+
   it('is unknown without any interval', () => {
     expect(computeDue({ ...oil, intervalKm: null, intervalDays: null, currentOdometer: 0, today }).status).toBe('unknown')
   })

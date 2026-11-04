@@ -3,7 +3,7 @@ import type { MaintenanceLog } from '@/lib/data/types'
 export interface ServiceVisit {
   key: string
   performedAt: string
-  odometer: number
+  odometer: number | null
   workshopName: string | null
   notes: string | null
   logs: MaintenanceLog[]
@@ -33,7 +33,7 @@ export function groupIntoVisits(logs: MaintenanceLog[]): ServiceVisit[] {
     if (!visit.notes && log.notes) visit.notes = log.notes
   }
   return [...visits.values()].sort(
-    (a, b) => b.performedAt.localeCompare(a.performedAt) || b.odometer - a.odometer,
+    (a, b) => b.performedAt.localeCompare(a.performedAt) || (b.odometer ?? 0) - (a.odometer ?? 0),
   )
 }
 

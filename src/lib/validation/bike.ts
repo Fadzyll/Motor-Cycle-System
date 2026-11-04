@@ -27,12 +27,8 @@ export const bikeFormSchema = z.object({
   year: optionalInt('Year', 1950, thisYear + 1),
   engine_cc: optionalInt('Engine size', 49, 3000),
   plate_number: optionalText(15).transform((v) => (v ? v.toUpperCase().replace(/\s+/g, ' ') : v)),
-  current_odometer: z
-    .string()
-    .trim()
-    .min(1, 'Enter the odometer reading')
-    .transform(Number)
-    .refine((v) => Number.isInteger(v) && v >= 0 && v <= 2_000_000, 'Enter the odometer in whole km'),
+  /** Optional — empty when the meter is broken; the bike is then tracked by date only. */
+  current_odometer: optionalInt('Odometer', 0, 2_000_000),
   purchase_date: optionalText(10),
 })
 

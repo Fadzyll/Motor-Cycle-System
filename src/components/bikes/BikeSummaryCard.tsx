@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { DueItemRow } from '@/components/maintenance/DueItemRow'
 import { Card } from '@/components/ui/card'
 import type { BikeWithStatus } from '@/lib/data/hooks'
-import { bikeSubtitle, formatKm } from '@/lib/format'
+import { bikeSubtitle, formatOdometer } from '@/lib/format'
 import { countByStatus } from '@/lib/maintenance/status'
 
 /** A bike with its most urgent items — used on the dashboard. */
@@ -19,7 +19,7 @@ export function BikeSummaryCard({ data, maxItems = 3 }: { data: BikeWithStatus; 
         <div className="min-w-0 flex-1">
           <p className="truncate text-lg font-semibold">{bike.nickname}</p>
           {bikeSubtitle(bike) && <p className="truncate text-sm text-muted">{bikeSubtitle(bike)}</p>}
-          <p className="text-sm text-muted">{formatKm(bike.current_odometer)}</p>
+          <p className="text-sm text-muted">{formatOdometer(bike.current_odometer)}</p>
         </div>
         <ChevronRight className="h-5 w-5 text-muted" aria-hidden />
       </Link>
